@@ -15,7 +15,7 @@ id.establecimientos;razon.social;nombre.sucursal;direccion;ccz;barrio;cajas;cade
 PRODUCTOS = """\
 id.producto;producto;marca;especificacion;nombre
 10;Azúcar;Bella Unión;Paquete 1 kg;Azúcar Bella Unión Paquete 1 kg
-11;Café;Sin marca;Frasco 170 g;Café Sin marca Frasco 170 g
+11;Café;Sin marca;Frasco170 g;Café Sin marca Frasco170 g
 12;Bolígrafo;Bic;Azul – negro;Bolígrafo Bic Azul – negro
 """
 

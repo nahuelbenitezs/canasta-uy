@@ -97,7 +97,69 @@ def test_salud_informa_el_periodo(cliente: TestClient):
         "estado": "ok",
         "datos_desde": "2026-08-03",
         "datos_hasta": "2026-09-30",
+        "precios_diarios": 11,
+        "locales": 7,
+        "productos": 2,
     }
+
+
+def test_destacados_prioriza_el_producto_mas_vendido_y_sale_antes_que_el_id(cliente: TestClient):
+    respuesta = cliente.get("/v1/productos/destacados")
+    assert respuesta.status_code == 200
+    assert [p["id"] for p in respuesta.json()] == [10]  # el café no tiene precios recientes
+
+
+def test_destacados_filtra_por_tipos(cliente: TestClient):
+    assert [
+        p["id"]
+        for p in cliente.get("/v1/productos/destacados", params={"tipos": ["Azúcar"]}).json()
+    ] == [10]
+    assert cliente.get("/v1/productos/destacados", params={"tipos": ["Otro"]}).json() == []
+
+
+def test_mapa_incluye_locales_sin_precio_y_excluye_otros_tipos(cliente: TestClient):
+    cuerpo = cliente.get("/v1/productos/10/mapa").json()
+    locales = {local["id"]: local for local in cuerpo["locales"]}
+    assert set(locales) == {1, 2, 3, 4, 6, 7}
+    assert locales[1]["precio"] == 97.5  # sin la oferta de 60
+    assert locales[7]["precio"] is None
+    assert (locales[1]["latitud"], locales[1]["longitud"]) == (-34.9, -56.1)
+    assert cuerpo["desde"] == "2026-09-07"
+
+
+def test_mapa_filtra_por_tipo(cliente: TestClient):
+    cuerpo = cliente.get("/v1/productos/10/mapa", params={"tipo": "farmacia"}).json()
+    assert [(local["id"], local["precio"]) for local in cuerpo["locales"]] == [(5, 50)]
+
+
+def test_canasta_suma_por_cadena_y_marca_faltantes(cliente: TestClient):
+    cuerpo = cliente.get("/v1/canasta", params={"productos": [10, 11], "semanas": 52}).json()
+    resultados = {r["cadena"]: r for r in cuerpo["resultados"]}
+    assert resultados["Disco"]["total"] == 110
+    assert resultados["Disco"]["productos_faltantes"] == [11]
+    assert resultados["Disco"]["completa"] is False
+    assert resultados["Devoto"]["total"] == 300
+    assert resultados["Devoto"]["productos_faltantes"] == [10]
+
+
+def test_canasta_ordena_primero_las_completas(cliente: TestClient):
+    cuerpo = cliente.get("/v1/canasta", params={"productos": [10]}).json()
+    assert [(r["cadena"], r["total"], r["completa"]) for r in cuerpo["resultados"]] == [
+        ("Ta - Ta", 90, True),
+        ("Disco", 110, True),
+    ]
+
+
+def test_canasta_ignora_productos_repetidos(cliente: TestClient):
+    cuerpo = cliente.get("/v1/canasta", params={"productos": [10, 10]}).json()
+    assert len(cuerpo["productos"]) == 1
+    assert cuerpo["resultados"][0]["total"] == 90
+
+
+def test_canasta_rechaza_producto_desconocido_o_lista_invalida(cliente: TestClient):
+    assert cliente.get("/v1/canasta", params={"productos": [12]}).status_code == 404
+    assert cliente.get("/v1/canasta").status_code == 422
+    assert cliente.get("/v1/canasta", params={"productos": list(range(1, 52))}).status_code == 422
 
 
 @pytest.mark.parametrize("texto", ["azucar", "AZÚCAR", "bella azucar", "union 1 kg"])

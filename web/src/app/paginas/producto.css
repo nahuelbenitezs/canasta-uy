@@ -1,0 +1,91 @@
+.pagina {
+  display: grid;
+  gap: clamp(2rem, 5vw, 3.5rem);
+  padding-block: 1.5rem clamp(3rem, 7vw, 5rem);
+}
+
+.volver {
+  justify-self: start;
+  font-weight: 650;
+}
+
+h1 {
+  font-size: clamp(2rem, 4.6vw, 3.6rem);
+  font-weight: 900;
+  max-width: 22ch;
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+  justify-content: space-between;
+  gap: 1.25rem;
+  padding-bottom: 1.5rem;
+  border-bottom: 2px solid var(--tinta);
+}
+
+.ranking {
+  display: grid;
+  gap: 1.15rem;
+  margin: 1.75rem 0 1.25rem;
+  padding: 0;
+  list-style: none;
+}
+
+.ranking li:not(.aviso) {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.ranking__fila {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+}
+
+.ranking strong {
+  font-size: 1.1rem;
+}
+
+.ranking b {
+  font-size: 1.4rem;
+  font-weight: 800;
+  font-stretch: 112%;
+}
+
+.barra {
+  display: block;
+  height: 0.6rem;
+  width: calc(var(--ancho) * 100%);
+  border-radius: 0 4px 4px 0;
+  background: var(--tinta);
+  transform-origin: left;
+  animation: crecer 650ms var(--salida) both;
+  animation-delay: calc(min(var(--i, 0), 10) * 35ms);
+}
+
+@keyframes crecer {
+  from {
+    transform: scaleX(0);
+  }
+}
+
+.ganadora .barra {
+  background: var(--barato);
+}
+
+.ganadora b {
+  color: var(--barato);
+}
+
+.historial {
+  display: grid;
+  gap: 0.25rem;
+}
+
+.selector-cadena {
+  max-width: 18rem;
+  margin-bottom: 1rem;
+}

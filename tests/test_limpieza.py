@@ -46,6 +46,13 @@ def test_catalogos_conservan_acentos(limpios: Path):
     assert filas(limpios / "productos.parquet", "especificacion")[2] == ("Azul – negro",)
 
 
+def test_separa_unidades_pegadas_en_productos(limpios: Path):
+    assert filas(limpios / "productos.parquet", "nombre, especificacion")[1] == (
+        "Café Sin marca Frasco 170 g",
+        "Frasco 170 g",
+    )
+
+
 def test_cadenas_normalizadas_y_tipo(limpios: Path):
     resultado = dict(filas(limpios / "establecimientos.parquet", "id, cadena"))
     assert resultado[2] == "Planeta"

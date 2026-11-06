@@ -1,0 +1,242 @@
+.portada {
+  display: grid;
+  grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  gap: 1rem clamp(1rem, 3vw, 3rem);
+  min-height: calc(100dvh - 4.25rem);
+  padding: clamp(1rem, 3vw, 2.5rem) max(1.25rem, calc((100vw - var(--ancho)) / 2)) 1.25rem;
+  background: var(--cartel);
+}
+
+.portada__texto {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 1.25rem;
+  min-width: 0;
+}
+
+h1 {
+  font-size: clamp(2.9rem, 6.2vw, 5.6rem);
+  font-weight: 900;
+  font-stretch: 118%;
+  line-height: 0.96;
+  letter-spacing: -0.035em;
+}
+
+.bajada {
+  font-size: clamp(1.1rem, 1.5vw, 1.3rem);
+  font-weight: 500;
+  max-width: 34ch;
+}
+
+.buscador {
+  position: relative;
+  display: grid;
+  gap: 0.35rem;
+  max-width: 30rem;
+}
+
+.buscador label {
+  font-weight: 700;
+}
+
+.buscador input {
+  width: 100%;
+  min-height: 3.4rem;
+  padding: 0.5rem 1rem;
+  border: 2px solid var(--tinta);
+  border-radius: var(--radio);
+  background: var(--papel);
+  color: var(--tinta);
+  font: inherit;
+  font-size: 1.15rem;
+  font-weight: 550;
+}
+
+.resultados {
+  position: absolute;
+  z-index: 2;
+  top: 100%;
+  left: 0;
+  right: 0;
+  display: grid;
+  max-height: 20rem;
+  margin-top: 0.4rem;
+  padding: 0.35rem;
+  overflow-y: auto;
+  border: 2px solid var(--tinta);
+  border-radius: var(--radio);
+  background: var(--papel);
+  box-shadow: 0 14px 30px rgb(58 47 0 / 26%);
+  transition:
+    opacity 180ms,
+    transform 240ms var(--salida);
+}
+
+@starting-style {
+  .resultados {
+    opacity: 0;
+    transform: translateY(-6px);
+  }
+}
+
+.resultados a {
+  padding: 0.6rem 0.7rem;
+  border-radius: 6px;
+  font-weight: 550;
+  line-height: 1.25;
+  text-decoration: none;
+}
+
+.resultados a:hover,
+.resultados a:focus-visible {
+  background: var(--cartel);
+}
+
+.resultados p {
+  padding: 0.6rem 0.7rem;
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.chips button {
+  min-height: 2.5rem;
+  padding: 0.25rem 0.85rem;
+  border: 2px solid var(--tinta);
+  border-radius: 999px;
+  background: transparent;
+  color: var(--tinta);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition:
+    background-color 150ms,
+    color 150ms,
+    transform 120ms var(--salida);
+}
+
+.chips button:hover {
+  background: rgb(20 20 15 / 10%);
+}
+
+.chips button:active {
+  transform: scale(0.96);
+}
+
+.chips button[aria-pressed='true'] {
+  background: var(--tinta);
+  color: var(--cartel);
+}
+
+.portada__mapa {
+  position: relative;
+  display: grid;
+  min-width: 0;
+  min-height: 0;
+}
+
+.aviso-mapa {
+  position: absolute;
+  inset: auto 0 45%;
+  margin-inline: auto;
+}
+
+.detalle {
+  display: grid;
+  grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
+  gap: clamp(2rem, 6vw, 5rem);
+  align-items: start;
+  padding-block: clamp(3rem, 7vw, 5.5rem);
+}
+
+.baratos {
+  display: grid;
+  margin: 1.25rem 0 1.5rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: puesto;
+}
+
+.baratos li {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 1rem;
+  padding-block: 0.7rem;
+  border-bottom: 1px solid var(--linea);
+}
+
+.baratos strong {
+  display: block;
+  font-size: 1.1rem;
+}
+
+.baratos b {
+  flex: none;
+  font-size: 1.35rem;
+  font-weight: 800;
+  font-stretch: 112%;
+}
+
+.baratos li:first-child b {
+  color: var(--barato);
+}
+
+.origen p {
+  color: var(--tinta-suave);
+}
+
+@media (max-width: 860px) {
+  .portada {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    padding-top: 0.5rem;
+  }
+
+  /* En el celular el mapa entra en la primera pantalla y la explicación queda debajo. */
+  .portada__texto {
+    display: contents;
+  }
+
+  .portada h1 {
+    order: 1;
+  }
+
+  .buscador {
+    order: 2;
+    max-width: none;
+  }
+
+  .chips {
+    order: 3;
+    flex-wrap: nowrap;
+    margin-inline: -1.25rem;
+    padding-inline: 1.25rem;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+
+  .chips button {
+    flex: none;
+  }
+
+  .portada__mapa {
+    order: 4;
+    height: max(23rem, 50dvh);
+  }
+
+  .bajada {
+    order: 5;
+    max-width: none;
+  }
+
+  .detalle {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}

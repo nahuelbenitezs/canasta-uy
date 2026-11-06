@@ -26,6 +26,27 @@ class Salud(BaseModel):
     estado: str
     datos_desde: date
     datos_hasta: date
+    precios_diarios: int
+    locales: int
+    productos: int
+
+
+class LocalMapa(BaseModel):
+    id: int
+    cadena: str | None
+    sucursal: str | None
+    barrio: str | None
+    departamento: str | None
+    latitud: float
+    longitud: float
+    precio: float | None
+
+
+class Mapa(BaseModel):
+    producto: Producto
+    desde: date
+    datos_hasta: date
+    locales: list[LocalMapa]
 
 
 class Filtros(BaseModel):
@@ -63,6 +84,21 @@ class Comparacion(BaseModel):
     resultados: list[PrecioCadena]
 
 
+class CanastaCadena(BaseModel):
+    cadena: str
+    total: float
+    productos_encontrados: int
+    productos_faltantes: list[int]
+    completa: bool
+
+
+class Canasta(BaseModel):
+    productos: list[Producto]
+    desde: date
+    datos_hasta: date
+    resultados: list[CanastaCadena]
+
+
 class PuntoHistorial(BaseModel):
     semana: date
     precio_mediano: float
@@ -92,6 +128,12 @@ BarrioQuery = Annotated[str | None, Query(max_length=100)]
 
 def _datos_hasta(cursor: Cursor) -> date:
     return cursor.execute("SELECT datos_hasta FROM metadatos").fetchone()[0]
+
+
+def _inicio_periodo(cursor: Cursor, hasta: date, semanas: int) -> date:
+    return cursor.execute(
+        "SELECT (date_trunc('week', ?::DATE) - to_weeks(? - 1))::DATE", [hasta, semanas]
+    ).fetchone()[0]
 
 
 def _producto_o_404(cursor: Cursor, id_producto: int) -> Producto:
@@ -147,8 +189,25 @@ def crear_app(ruta_base: Path | None = None, origenes: list[str] | None = None) 
     @aplicacion.get("/salud", tags=["estado"])
     def salud(cursor: CursorDep) -> Salud:
         """Indica que la API funciona y qué período cubren los datos."""
-        desde, hasta = cursor.execute("SELECT datos_desde, datos_hasta FROM metadatos").fetchone()
-        return Salud(estado="ok", datos_desde=desde, datos_hasta=hasta)
+        desde, hasta, precios_diarios, locales, productos = cursor.execute(
+            """
+            SELECT
+                datos_desde,
+                datos_hasta,
+                precios_diarios,
+                (SELECT count(*) FROM establecimientos),
+                (SELECT count(*) FROM productos)
+            FROM metadatos
+            """
+        ).fetchone()
+        return Salud(
+            estado="ok",
+            datos_desde=desde,
+            datos_hasta=hasta,
+            precios_diarios=precios_diarios,
+            locales=locales,
+            productos=productos,
+        )
 
     @aplicacion.get("/v1/filtros", tags=["consulta"])
     def filtros(cursor: CursorDep, departamento: DepartamentoQuery = None) -> Filtros:
@@ -198,10 +257,136 @@ def crear_app(ruta_base: Path | None = None, origenes: list[str] | None = None) 
             ],
         )
 
+    @aplicacion.get("/v1/productos/destacados", tags=["consulta"])
+    def productos_destacados(
+        cursor: CursorDep,
+        limit: Annotated[int, Query(ge=1, le=20)] = 6,
+        tipos: Annotated[
+            list[str] | None, Query(max_length=20, description="Limita a estos tipos de producto")
+        ] = None,
+    ) -> list[Producto]:
+        """Productos de tipos distintos que más supermercados venden en el período reciente."""
+        hasta = _datos_hasta(cursor)
+        desde = _inicio_periodo(cursor, hasta, 4)
+        filas = cursor.execute(
+            """
+            WITH cobertura AS (
+                SELECT s.id_producto, count(DISTINCT s.id_establecimiento) AS locales
+                FROM precios_semanales s
+                JOIN establecimientos e ON e.id = s.id_establecimiento
+                WHERE NOT s.en_oferta AND s.semana >= ? AND e.tipo = 'supermercado'
+                GROUP BY s.id_producto
+            )
+            SELECT p.id, p.nombre, p.producto, p.marca, p.especificacion
+            FROM productos p
+            JOIN cobertura c ON c.id_producto = p.id
+            WHERE len(?::VARCHAR[]) = 0 OR list_contains(?::VARCHAR[], p.producto)
+            QUALIFY row_number() OVER (PARTITION BY p.producto ORDER BY c.locales DESC, p.id) = 1
+            ORDER BY c.locales DESC, p.id
+            LIMIT ?
+            """,
+            [desde, tipos or [], tipos or [], limit],
+        ).fetchall()
+        return [Producto(**dict(zip(Producto.model_fields, fila, strict=True))) for fila in filas]
+
+    @aplicacion.get("/v1/canasta", tags=["consulta"])
+    def comparar_canasta(
+        cursor: CursorDep,
+        productos: Annotated[
+            list[int], Query(min_length=1, max_length=50, description="IDs de los productos")
+        ],
+        tipo: TipoQuery = "supermercado",
+        departamento: DepartamentoQuery = None,
+        barrio: BarrioQuery = None,
+        semanas: Annotated[int, Query(ge=1, le=52, description="Semanas hacia atrás")] = 4,
+    ) -> Canasta:
+        """Suma el precio habitual de la canasta en cada cadena.
+
+        Primero aparecen las cadenas que tienen todos los productos, de menor a mayor. Las demás
+        van después, porque su total no es comparable.
+        """
+        ids = list(dict.fromkeys(productos))
+        detalle = [_producto_o_404(cursor, id_producto) for id_producto in ids]
+        hasta = _datos_hasta(cursor)
+        desde = _inicio_periodo(cursor, hasta, semanas)
+        condicion, parametros = _filtro_locales(tipo, departamento, barrio)
+        marcadores = ", ".join("?" * len(ids))
+        filas = cursor.execute(
+            f"""
+            WITH por_local AS (
+                SELECT e.cadena, s.id_producto, e.id, median(s.precio) AS precio
+                FROM precios_semanales s
+                JOIN establecimientos e ON e.id = s.id_establecimiento
+                WHERE s.id_producto IN ({marcadores}) AND NOT s.en_oferta AND s.semana >= ?
+                  AND e.cadena <> 'Sin cadena' AND {condicion}
+                GROUP BY e.cadena, s.id_producto, e.id
+            ),
+            por_cadena AS (
+                SELECT cadena, id_producto, median(precio) AS precio
+                FROM por_local GROUP BY cadena, id_producto
+            )
+            SELECT cadena, round(sum(precio), 2), list(id_producto)
+            FROM por_cadena GROUP BY cadena
+            """,
+            [*ids, desde, *parametros],
+        ).fetchall()
+        resultados = [
+            CanastaCadena(
+                cadena=cadena,
+                total=total,
+                productos_encontrados=len(encontrados),
+                productos_faltantes=[i for i in ids if i not in encontrados],
+                completa=len(encontrados) == len(ids),
+            )
+            for cadena, total, encontrados in filas
+        ]
+        resultados.sort(key=lambda r: (not r.completa, r.total, r.cadena))
+        return Canasta(productos=detalle, desde=desde, datos_hasta=hasta, resultados=resultados)
+
     @aplicacion.get("/v1/productos/{id_producto}", tags=["consulta"])
     def obtener_producto(cursor: CursorDep, id_producto: IdProducto) -> Producto:
         """Devuelve un producto."""
         return _producto_o_404(cursor, id_producto)
+
+    @aplicacion.get("/v1/productos/{id_producto}/mapa", tags=["consulta"])
+    def mapa(
+        cursor: CursorDep,
+        id_producto: IdProducto,
+        tipo: TipoQuery = "supermercado",
+        semanas: Annotated[int, Query(ge=1, le=52, description="Semanas hacia atrás")] = 4,
+    ) -> Mapa:
+        """Precio habitual del producto en cada local con ubicación conocida.
+
+        Los locales sin ese producto en el período también se devuelven, con `precio` vacío.
+        """
+        producto = _producto_o_404(cursor, id_producto)
+        hasta = _datos_hasta(cursor)
+        desde = _inicio_periodo(cursor, hasta, semanas)
+        filas = cursor.execute(
+            """
+            WITH precios AS (
+                SELECT id_establecimiento, median(precio) AS precio
+                FROM precios_semanales
+                WHERE id_producto = ? AND NOT en_oferta AND semana >= ?
+                GROUP BY id_establecimiento
+            )
+            SELECT e.id, e.cadena, e.sucursal, e.barrio, e.departamento, e.latitud, e.longitud,
+                   round(p.precio, 2)
+            FROM establecimientos e
+            LEFT JOIN precios p ON p.id_establecimiento = e.id
+            WHERE e.tipo = ? AND e.latitud IS NOT NULL
+            ORDER BY e.id
+            """,
+            [id_producto, desde, tipo],
+        ).fetchall()
+        return Mapa(
+            producto=producto,
+            desde=desde,
+            datos_hasta=hasta,
+            locales=[
+                LocalMapa(**dict(zip(LocalMapa.model_fields, fila, strict=True))) for fila in filas
+            ],
+        )
 
     @aplicacion.get("/v1/productos/{id_producto}/comparacion", tags=["consulta"])
     def comparar(
@@ -220,12 +405,7 @@ def crear_app(ruta_base: Path | None = None, origenes: list[str] | None = None) 
         """
         producto = _producto_o_404(cursor, id_producto)
         hasta = _datos_hasta(cursor)
-        desde = cursor.execute(
-            """
-            SELECT (date_trunc('week', ?::DATE) - to_weeks(? - 1))::DATE
-            """,
-            [hasta, semanas],
-        ).fetchone()[0]
+        desde = _inicio_periodo(cursor, hasta, semanas)
         condicion, parametros = _filtro_locales(tipo, departamento, barrio)
         if not incluir_sin_cadena:
             condicion += " AND e.cadena <> 'Sin cadena'"

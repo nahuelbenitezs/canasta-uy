@@ -1,0 +1,76 @@
+.saltar {
+  position: absolute;
+  z-index: 10;
+  top: -4rem;
+  left: 1rem;
+  padding: 0.5rem 1rem;
+  border-radius: var(--radio);
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+.saltar:focus {
+  top: 0.5rem;
+}
+
+.barra {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  min-height: 4.25rem;
+  padding-inline: max(1.25rem, calc((100vw - var(--ancho)) / 2));
+  background: var(--papel);
+}
+
+.barra--cartel {
+  background: var(--cartel);
+}
+
+.marca {
+  font-size: 1.45rem;
+  font-weight: 900;
+  font-stretch: 118%;
+  letter-spacing: -0.03em;
+  text-decoration: none;
+}
+
+.enlace-canasta {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  min-height: 2.75rem;
+  font-weight: 700;
+}
+
+.contador {
+  display: inline-grid;
+  place-items: center;
+  min-width: 1.6rem;
+  height: 1.6rem;
+  padding-inline: 0.3rem;
+  border-radius: 999px;
+  background: var(--tinta);
+  color: var(--cartel);
+  font-size: 0.85rem;
+}
+
+main {
+  outline: none;
+}
+
+.pie {
+  padding-block: 2.25rem;
+  background: var(--tinta);
+  color: var(--papel);
+  font-size: 0.92rem;
+}
+
+.pie .contenedor {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.pie :focus-visible {
+  outline-color: var(--cartel);
+}

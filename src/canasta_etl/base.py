@@ -59,7 +59,11 @@ def construir_base(limpios: Path, destino: Path) -> dict[str, int]:
             con.execute(
                 f"""
                 CREATE TABLE metadatos AS
-                SELECT min(fecha) AS datos_desde, max(fecha) AS datos_hasta FROM {precios}
+                SELECT
+                    min(fecha) AS datos_desde,
+                    max(fecha) AS datos_hasta,
+                    count(*) AS precios_diarios
+                FROM {precios}
                 """
             )
             filas, locales, productos = con.execute(

@@ -1,0 +1,129 @@
+:host {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  min-height: 0;
+}
+
+.lienzo {
+  position: relative;
+  min-height: 0;
+  height: 100%;
+}
+
+canvas {
+  mask-image:
+    linear-gradient(to right, transparent, #000 7%, #000 93%, transparent),
+    linear-gradient(to bottom, transparent, #000 7%, #000 93%, transparent);
+  mask-composite: intersect;
+}
+
+canvas {
+  display: block;
+  width: 100%;
+  height: 100%;
+  touch-action: pan-y;
+  cursor: grab;
+}
+
+canvas:active {
+  cursor: grabbing;
+}
+
+.ficha {
+  position: absolute;
+  z-index: 1;
+  display: grid;
+  width: 15rem;
+  padding: 0.6rem 0.8rem;
+  border-radius: var(--radio);
+  background: var(--tinta);
+  color: var(--papel);
+  font-size: 0.875rem;
+  line-height: 1.3;
+  pointer-events: none;
+  box-shadow: 0 10px 24px rgb(58 47 0 / 28%);
+}
+
+.ficha strong {
+  color: var(--cartel);
+  font-size: 1.35rem;
+  font-stretch: 112%;
+}
+
+.ficha__zona {
+  opacity: 0.78;
+}
+
+.sin-webgl {
+  position: absolute;
+  inset: auto 0 40%;
+  font-weight: 650;
+  text-align: center;
+  margin-inline: auto;
+}
+
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem 1.25rem;
+}
+
+.vista {
+  display: inline-flex;
+  padding: 3px;
+  border: 2px solid var(--tinta);
+  border-radius: var(--radio);
+}
+
+.vista button {
+  min-height: 2.25rem;
+  padding: 0.2rem 0.8rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--tinta);
+  font: inherit;
+  font-size: 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 150ms, color 150ms;
+}
+
+.vista button[aria-pressed='true'] {
+  background: var(--tinta);
+  color: var(--cartel);
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.25rem 1rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.9rem;
+  font-weight: 600;
+}
+
+.leyenda li {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.muestra {
+  width: 0.7rem;
+  height: 1rem;
+  border-radius: 2px 2px 0 0;
+}
+
+.muestra--tinta {
+  background: var(--tinta);
+}
+
+.muestra--barato {
+  background: var(--barato);
+}

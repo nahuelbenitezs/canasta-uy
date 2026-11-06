@@ -2,9 +2,27 @@
 
 Observatorio de precios de Uruguay, hecho con los datos abiertos del
 [Sistema de Información de Precios al Consumidor](https://catalogodatos.gub.uy/dataset/defensa-del-consumidor-sistema-de-informacion-de-precios-al-consumidor-2026)
-(SIPC). Permite comparar cadenas, ver cómo evoluciona cada producto y medir si una oferta es real.
+(SIPC). Abre con un mapa 3D de Uruguay donde cada columna es un supermercado real, y permite comparar cadenas, ver cómo evoluciona cada producto y armar una canasta.
 
-> **Estado:** fase 2 de 5. La carga de datos y la API funcionan localmente; la API todavía no está publicada y la web en Angular no existe.
+> **Estado:** fase 3 de 5. La carga de datos, la API y la web funcionan localmente, pero todavía no están publicadas. Medir si una oferta es real llega en la fase 4.
+
+## Ver la web
+
+Con los datos ya cargados, en dos terminales:
+
+```powershell
+.\.venv\Scripts\uvicorn --factory canasta_api.app:app --port 8000
+```
+
+```powershell
+cd web
+npm install
+npm start
+```
+
+La web queda en <http://localhost:4200>. Para los tests: `npx ng test --watch=false` dentro de `web`.
+
+Está hecha con Angular, Three.js para el mapa y Motion para las animaciones. Las decisiones de producto y de diseño están en [PRODUCT.md](PRODUCT.md) y [DESIGN.md](DESIGN.md).
 
 ## Cargar los datos
 
@@ -37,6 +55,9 @@ La documentación interactiva queda en <http://localhost:8000/docs>.
 | `GET /v1/productos/{id}` | Ver un producto |
 | `GET /v1/productos/{id}/comparacion` | Comparar el precio habitual entre cadenas, por zona y período |
 | `GET /v1/productos/{id}/historial` | Ver la evolución semanal del precio habitual |
+| `GET /v1/productos/{id}/mapa` | Obtener el precio del producto en cada local con ubicación |
+| `GET /v1/productos/destacados` | Listar productos de tipos distintos con más cobertura |
+| `GET /v1/canasta?productos=1&productos=2` | Sumar una canasta por cadena |
 
 Variables opcionales: `CANASTA_BASE` (ruta de la base) y `CANASTA_ORIGENES` (orígenes permitidos,
 separados por comas; por defecto, `http://localhost:4200`).
@@ -83,4 +104,4 @@ Datos del 1 de enero al 30 de setiembre:
 - **Licencia:** [Licencia de Datos Abiertos – Uruguay](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/sites/agencia-gobierno-electronico-sociedad-informacion-conocimiento/files/documentos/publicaciones/licencia_de_datos_abiertos_0.pdf).
 - **Modificaciones:** los datos se transforman como se describe en [Qué corrige la limpieza](#qué-corrige-la-limpieza). Además, se agrega a cada local un tipo (supermercado, farmacia, mayorista o delivery) y se descartan las filas inválidas, repetidas o sin catálogo.
 
-Este repositorio no incluye los datos: el comando los descarga desde la fuente.
+Este repositorio no incluye los datos: el comando los descarga desde la fuente. La silueta de Uruguay del mapa viene de Natural Earth, de dominio público.

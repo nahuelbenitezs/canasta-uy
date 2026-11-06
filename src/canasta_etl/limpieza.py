@@ -77,6 +77,11 @@ def _limpiar_establecimientos(con: duckdb.DuckDBPyConnection, csv: Path, salida:
     )
 
 
+def _separar_unidad(columna: str) -> str:
+    """Corrige textos pegados del catálogo, como `Paquete1 kg.`."""
+    return rf"regexp_replace(trim({columna}), '([[:alpha:]])([0-9])', '\1 \2', 'g')"
+
+
 def _limpiar_productos(con: duckdb.DuckDBPyConnection, csv: Path, salida: Path) -> None:
     con.execute(
         f"""
@@ -85,8 +90,8 @@ def _limpiar_productos(con: duckdb.DuckDBPyConnection, csv: Path, salida: Path) 
                 cast("id.producto" AS INTEGER) AS id,
                 trim(producto) AS producto,
                 trim(marca) AS marca,
-                trim(especificacion) AS especificacion,
-                trim(nombre) AS nombre
+                {_separar_unidad("especificacion")} AS especificacion,
+                {_separar_unidad("nombre")} AS nombre
             FROM read_csv({_literal(str(csv))}, delim=';', header=true, all_varchar=true,
                           nullstr=['NULL', ''])
         ) TO {_literal(str(salida))} (FORMAT parquet, COMPRESSION zstd)
