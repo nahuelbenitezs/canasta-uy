@@ -12,8 +12,13 @@ test -f "$raiz/web/public/datos/catalogo.json" || {
   exit 1
 }
 
-(cd "$raiz/web" && npx ng build --base-href /canasta-uy/)
+# En Git Bash, sin esta variable, /canasta-uy/ se convierte en una ruta de Windows.
+(cd "$raiz/web" && MSYS_NO_PATHCONV=1 npx ng build --base-href /canasta-uy/)
 salida="$raiz/web/dist/web/browser"
+grep -q '<base href="/canasta-uy/"' "$salida/index.html" || {
+  echo "La compilación quedó con una ruta base incorrecta: no se publica." >&2
+  exit 1
+}
 cp "$salida/index.html" "$salida/404.html" # GitHub Pages: abrir directo una ruta de la web
 touch "$salida/.nojekyll"
 
