@@ -4,7 +4,7 @@ Observatorio de precios de Uruguay, hecho con los datos abiertos del
 [Sistema de Información de Precios al Consumidor](https://catalogodatos.gub.uy/dataset/defensa-del-consumidor-sistema-de-informacion-de-precios-al-consumidor-2026)
 (SIPC). Permite comparar cadenas, ver cómo evoluciona cada producto y medir si una oferta es real.
 
-> **Estado:** fase 1 de 5, la carga de datos. La API y la web en Angular todavía no existen.
+> **Estado:** fase 2 de 5. La carga de datos y la API funcionan localmente; la API todavía no está publicada y la web en Angular no existe.
 
 ## Cargar los datos
 
@@ -18,7 +18,33 @@ python -m venv .venv
 ```
 
 El comando baja solo lo que cambió, escribe los resultados en `data/clean/<año>/` y termina con
-error si falla un control. El archivo de precios de 2026 pesa unos 1,5 GB.
+error si falla un control. El archivo de precios de 2026 pesa unos 1,5 GB. Si todo está bien,
+genera `data/serving/canasta.duckdb`, la base resumida de 14 MB que usa la API.
+
+## Usar la API
+
+```powershell
+.\.venv\Scripts\uvicorn --factory canasta_api.app:app --port 8000
+```
+
+La documentación interactiva queda en <http://localhost:8000/docs>.
+
+| Ruta | Para qué sirve |
+|---|---|
+| `GET /salud` | Estado de la API y período que cubren los datos |
+| `GET /v1/filtros` | Departamentos, barrios, cadenas y tipos de local |
+| `GET /v1/productos?q=arroz` | Buscar productos, sin distinguir mayúsculas ni acentos |
+| `GET /v1/productos/{id}` | Ver un producto |
+| `GET /v1/productos/{id}/comparacion` | Comparar el precio habitual entre cadenas, por zona y período |
+| `GET /v1/productos/{id}/historial` | Ver la evolución semanal del precio habitual |
+
+Variables opcionales: `CANASTA_BASE` (ruta de la base) y `CANASTA_ORIGENES` (orígenes permitidos,
+separados por comas; por defecto, `http://localhost:4200`).
+
+**Cómo se calculan los precios:** se toma la mediana semanal de cada local, luego la de cada local
+en el período y al final la de la cadena. Así, un precio mal declarado o un local con más semanas
+no distorsiona el resultado. El precio habitual no incluye ofertas, y la comparación deja afuera a
+los comercios sin cadena salvo que se pida `incluir_sin_cadena=true`.
 
 ## Qué corrige la limpieza
 
@@ -48,7 +74,7 @@ Datos del 1 de enero al 30 de setiembre:
 - **Los datos no son del día:** se publican con retraso, así que sirven para ver tendencias y no para saber el precio de hoy.
 - **La cobertura es parcial:** el catálogo tiene 379 presentaciones de productos, no todo lo que vende un supermercado.
 - **Los precios los declaran los comercios:** por ejemplo, unas curitas de mediana $56 aparecen a $2.539,56. Se conservan y la validación avisa; las fases siguientes tienen que usar medidas robustas, como la mediana.
-- **Solo se probó con 2026:** los archivos de otros años pueden tener diferencias.
+- **Solo se probó con 2026:** los archivos de otros años pueden tener diferencias, y la base de la API usa únicamente el año más reciente que se procese.
 
 ## Nota de origen de los datos
 

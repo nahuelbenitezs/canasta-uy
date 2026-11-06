@@ -6,6 +6,7 @@ import argparse
 import sys
 from pathlib import Path
 
+from canasta_etl.base import construir_base
 from canasta_etl.descarga import descargar_anio
 from canasta_etl.limpieza import limpiar_anio
 from canasta_etl.validacion import validar_anio
@@ -33,7 +34,16 @@ def main(argv: list[str] | None = None) -> int:
             estado = "OK " if control.problemas == 0 else ("ERR" if control.grave else "AVISO")
             print(f"  {estado} {control.nombre}: {control.problemas:,}")
             todo_bien = todo_bien and control.aprobado
-    return 0 if todo_bien else 1
+    if not todo_bien:
+        print("La validación falló: no se actualiza la base de la API.")
+        return 1
+    # Solo el año más reciente: todavía no se comprobó que los ID coincidan entre años.
+    anio = max(args.anio)
+    print(f"[{anio}] Generando la base de la API...", flush=True)
+    destino = args.datos / "serving" / "canasta.duckdb"
+    for clave, valor in construir_base(args.datos / "clean" / str(anio), destino).items():
+        print(f"  {clave}: {valor:,}")
+    return 0
 
 
 if __name__ == "__main__":
