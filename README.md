@@ -50,7 +50,11 @@ Datos del 1 de enero al 30 de setiembre:
 - **Los precios los declaran los comercios:** por ejemplo, unas curitas de mediana $56 aparecen a $2.539,56. Se conservan y la validación avisa; las fases siguientes tienen que usar medidas robustas, como la mediana.
 - **Solo se probó con 2026:** los archivos de otros años pueden tener diferencias.
 
-## Fuente y licencia de los datos
+## Nota de origen de los datos
 
-Los datos son publicados por el área de Defensa del Consumidor bajo la
-[Licencia de Datos Abiertos de Uruguay](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/sites/agencia-gobierno-electronico-sociedad-informacion-conocimiento/files/documentos/publicaciones/licencia_de_datos_abiertos_0.pdf).
+- **Proveedor:** Defensa del Consumidor.
+- **Conjunto de datos:** [Sistema de Información de Precios al Consumidor 2026](https://catalogodatos.gub.uy/dataset/defensa-del-consumidor-sistema-de-informacion-de-precios-al-consumidor-2026).
+- **Licencia:** [Licencia de Datos Abiertos – Uruguay](https://www.gub.uy/agencia-gobierno-electronico-sociedad-informacion-conocimiento/sites/agencia-gobierno-electronico-sociedad-informacion-conocimiento/files/documentos/publicaciones/licencia_de_datos_abiertos_0.pdf).
+- **Modificaciones:** los datos se transforman como se describe en [Qué corrige la limpieza](#qué-corrige-la-limpieza). Además, se agrega a cada local un tipo (supermercado, farmacia, mayorista o delivery) y se descartan las filas inválidas, repetidas o sin catálogo.
+
+Este repositorio no incluye los datos: el comando los descarga desde la fuente.
