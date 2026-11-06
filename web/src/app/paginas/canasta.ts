@@ -1,8 +1,7 @@
-import { httpResource } from '@angular/common/http';
-import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, resource, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Canasta as RespuestaCanasta, Filtros, parametros } from '../api';
 import { CanastaStore } from '../canasta-store';
+import { DatosService } from '../datos';
 import { fecha, precio } from '../formato';
 
 @Component({
@@ -127,22 +126,18 @@ export class Canasta {
   protected readonly formatoPrecio = precio;
   protected readonly formatoFecha = fecha;
 
-  protected readonly filtros = httpResource<Filtros>(() => ({
-    url: '/v1/filtros',
-    params: parametros({ departamento: this.departamento() }),
-  }));
-  protected readonly resultado = httpResource<RespuestaCanasta>(() =>
-    this.store.cantidad() === 0
-      ? undefined
-      : {
-          url: '/v1/canasta',
-          params: parametros({
-            productos: this.store.ids(),
-            departamento: this.departamento(),
-            barrio: this.barrio(),
-          }),
-        },
-  );
+  private readonly datos = inject(DatosService);
+  protected readonly filtros = resource({
+    params: () => ({ departamento: this.departamento() }),
+    loader: ({ params }) => this.datos.filtros(params.departamento),
+  });
+  protected readonly resultado = resource({
+    params: () =>
+      this.store.cantidad() === 0
+        ? undefined
+        : { ids: this.store.ids(), departamento: this.departamento(), barrio: this.barrio() },
+    loader: ({ params: { ids, ...zona } }) => this.datos.canasta(ids, zona),
+  });
 
   private readonly filas = computed(() =>
     this.resultado.hasValue() ? this.resultado.value().resultados : [],

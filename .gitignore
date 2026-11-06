@@ -1,5 +1,7 @@
 .venv/
 data/
+web/public/datos/
+web/public/datos.tmp/
 __pycache__/
 *.egg-info/
 .pytest_cache/

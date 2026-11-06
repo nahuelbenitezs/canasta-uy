@@ -316,7 +316,17 @@ def test_un_error_al_generar_no_pisa_la_base_anterior(ruta_base: Path, tmp_path:
 
 def test_cli_genera_la_base_si_la_validacion_aprueba(tmp_path: Path):
     escribir_crudos(tmp_path / "raw" / "2026")
-    codigo = main(["--anio", "2026", "--datos", str(tmp_path), "--sin-descarga"])
+    codigo = main(
+        [
+            "--anio",
+            "2026",
+            "--datos",
+            str(tmp_path),
+            "--web",
+            str(tmp_path / "web"),
+            "--sin-descarga",
+        ]
+    )
     assert codigo == 0
     assert (tmp_path / "serving" / "canasta.duckdb").exists()
 
@@ -325,6 +335,8 @@ def test_cli_no_genera_la_base_si_la_validacion_falla(tmp_path: Path, crudos: Pa
     datos = tmp_path / "datos"
     (datos / "raw").mkdir(parents=True)
     crudos.rename(datos / "raw" / "2026")  # estos datos superan el límite de precios sin catálogo
-    codigo = main(["--anio", "2026", "--datos", str(datos), "--sin-descarga"])
+    codigo = main(
+        ["--anio", "2026", "--datos", str(datos), "--web", str(datos / "web"), "--sin-descarga"]
+    )
     assert codigo == 1
     assert not (datos / "serving" / "canasta.duckdb").exists()

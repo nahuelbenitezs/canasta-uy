@@ -1,14 +1,15 @@
-import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
   computed,
   DestroyRef,
   inject,
+  resource,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Mapa, parametros, Producto, ResultadoBusqueda, Salud } from '../api';
+import { Mapa, Producto } from '../api';
+import { DatosService } from '../datos';
 import { entero, fecha, precio } from '../formato';
 import { masBaratos } from '../mapa/mapa-geometria';
 import { MapaPrecios } from '../mapa/mapa-precios';
@@ -144,31 +145,23 @@ export class Inicio {
   protected readonly consulta = signal('');
   protected readonly elegido = signal<number | null>(null);
 
-  protected readonly salud = httpResource<Salud>(() => '/salud');
-  protected readonly destacados = httpResource<Producto[]>(
-    () => ({ url: '/v1/productos/destacados', params: { tipos: [...PORTADA.keys()] } }),
-    {
-      parse: (respuesta) => {
-        const orden = [...PORTADA.keys()];
-        return [...(respuesta as Producto[])].sort(
-          (a, b) => orden.indexOf(a.producto) - orden.indexOf(b.producto),
-        );
-      },
-    },
-  );
-  protected readonly busqueda = httpResource<ResultadoBusqueda>(() =>
-    this.consulta()
-      ? { url: '/v1/productos', params: parametros({ q: this.consulta(), limit: 8 }) }
-      : undefined,
-  );
+  private readonly datos = inject(DatosService);
+  protected readonly salud = resource({ loader: () => this.datos.salud() });
+  protected readonly destacados = resource({
+    loader: () => this.datos.destacados([...PORTADA.keys()]),
+  });
+  protected readonly busqueda = resource({
+    params: () => this.consulta() || undefined,
+    loader: ({ params }) => this.datos.buscar(params, 8),
+  });
 
   protected readonly idMapa = computed(
     () =>
       this.elegido() ?? (this.destacados.hasValue() ? (this.destacados.value()[0]?.id ?? null) : null),
   );
-  protected readonly mapa = httpResource<Mapa>(() => {
-    const id = this.idMapa();
-    return id === null ? undefined : `/v1/productos/${id}/mapa`;
+  protected readonly mapa = resource({
+    params: () => this.idMapa() ?? undefined,
+    loader: ({ params }) => this.datos.mapa(params),
   });
   /** Conserva el mapa anterior mientras llega el siguiente, para que las columnas se transformen. */
   private ultimoMapa: Mapa | undefined;

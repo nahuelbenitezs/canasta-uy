@@ -8,6 +8,7 @@ from pathlib import Path
 
 from canasta_etl.base import construir_base
 from canasta_etl.descarga import descargar_anio
+from canasta_etl.exportar import exportar_datos
 from canasta_etl.limpieza import limpiar_anio
 from canasta_etl.validacion import validar_anio
 
@@ -17,6 +18,12 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--anio", type=int, action="append", required=True, help="Año a procesar")
     parser.add_argument("--datos", type=Path, default=Path("data"), help="Carpeta de datos")
     parser.add_argument("--sin-descarga", action="store_true", help="Usa los CSV ya descargados")
+    parser.add_argument(
+        "--web",
+        type=Path,
+        default=Path("web/public/datos"),
+        help="Carpeta donde se exportan los datos de la web",
+    )
     args = parser.parse_args(argv)
 
     todo_bien = True
@@ -42,6 +49,9 @@ def main(argv: list[str] | None = None) -> int:
     print(f"[{anio}] Generando la base de la API...", flush=True)
     destino = args.datos / "serving" / "canasta.duckdb"
     for clave, valor in construir_base(args.datos / "clean" / str(anio), destino).items():
+        print(f"  {clave}: {valor:,}")
+    print(f"[{anio}] Exportando los datos de la web...", flush=True)
+    for clave, valor in exportar_datos(destino, args.web).items():
         print(f"  {clave}: {valor:,}")
     return 0
 

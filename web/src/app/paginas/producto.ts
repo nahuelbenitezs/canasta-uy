@@ -1,4 +1,3 @@
-import { httpResource } from '@angular/common/http';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -6,11 +5,12 @@ import {
   inject,
   input,
   numberAttribute,
+  resource,
   signal,
 } from '@angular/core';
 import { RouterLink } from '@angular/router';
-import { Comparacion, Filtros, Historial, parametros } from '../api';
 import { CanastaStore } from '../canasta-store';
+import { DatosService } from '../datos';
 import { fecha, locales, precio } from '../formato';
 import { HistorialPrecios } from '../historial/historial-precios';
 
@@ -159,26 +159,29 @@ export class Producto {
   protected readonly formatoFecha = fecha;
   protected readonly formatoLocales = locales;
 
-  protected readonly filtros = httpResource<Filtros>(() => ({
-    url: '/v1/filtros',
-    params: parametros({ departamento: this.departamento() }),
-  }));
-  protected readonly comparacion = httpResource<Comparacion>(() => ({
-    url: `/v1/productos/${this.id()}/comparacion`,
-    params: parametros({
+  private readonly datos = inject(DatosService);
+  protected readonly filtros = resource({
+    params: () => ({ departamento: this.departamento() }),
+    loader: ({ params }) => this.datos.filtros(params.departamento),
+  });
+  protected readonly comparacion = resource({
+    params: () => ({
+      id: this.id(),
       departamento: this.departamento(),
       barrio: this.barrio(),
       semanas: this.semanas(),
     }),
-  }));
-  protected readonly historial = httpResource<Historial>(() => ({
-    url: `/v1/productos/${this.id()}/historial`,
-    params: parametros({
+    loader: ({ params: { id, semanas, ...zona } }) => this.datos.comparacion(id, zona, semanas),
+  });
+  protected readonly historial = resource({
+    params: () => ({
+      id: this.id(),
       departamento: this.departamento(),
       barrio: this.barrio(),
       cadena: this.cadena(),
     }),
-  }));
+    loader: ({ params: { id, ...filtro } }) => this.datos.historial(id, filtro),
+  });
 
   protected readonly noExiste = computed(
     () => (this.comparacion.error() as { status?: number } | undefined)?.status === 404,

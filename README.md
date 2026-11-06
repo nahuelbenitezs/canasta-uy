@@ -4,15 +4,13 @@ Observatorio de precios de Uruguay, hecho con los datos abiertos del
 [Sistema de Información de Precios al Consumidor](https://catalogodatos.gub.uy/dataset/defensa-del-consumidor-sistema-de-informacion-de-precios-al-consumidor-2026)
 (SIPC). Abre con un mapa 3D de Uruguay donde cada columna es un supermercado real, y permite comparar cadenas, ver cómo evoluciona cada producto y armar una canasta.
 
-> **Estado:** fase 3 de 5. La carga de datos, la API y la web funcionan localmente, pero todavía no están publicadas. Medir si una oferta es real llega en la fase 4.
+**[Ver la web](https://nahuelbenitezs.github.io/canasta-uy/)**
 
-## Ver la web
+> **Estado:** fase 3 de 5, publicada. Medir si una oferta es real llega en la fase 4.
 
-Con los datos ya cargados, en dos terminales:
+## Ver la web localmente
 
-```powershell
-.\.venv\Scripts\uvicorn --factory canasta_api.app:app --port 8000
-```
+Con los datos ya cargados:
 
 ```powershell
 cd web
@@ -23,6 +21,16 @@ npm start
 La web queda en <http://localhost:4200>. Para los tests: `npx ng test --watch=false` dentro de `web`.
 
 Está hecha con Angular, Three.js para el mapa y Motion para las animaciones. Las decisiones de producto y de diseño están en [PRODUCT.md](PRODUCT.md) y [DESIGN.md](DESIGN.md).
+
+## Cómo se publica
+
+La web es estática y vive en GitHub Pages, sin servidor. `canasta-etl` exporta un catálogo y un archivo de precios por producto a `web/public/datos`, y el navegador calcula cada consulta con [`consultas.ts`](web/src/app/consultas.ts). La API hace los mismos cálculos con DuckDB: sirve para consultar los datos por separado, y la web no la necesita.
+
+Para publicar, desde Git Bash y con los datos ya cargados:
+
+```bash
+scripts/publicar.sh
+```
 
 ## Cargar los datos
 
