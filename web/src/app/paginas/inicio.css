@@ -1,18 +1,22 @@
-.portada {
+.escenario {
   display: grid;
   grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
-  gap: 1rem clamp(1rem, 3vw, 3rem);
-  min-height: calc(100dvh - 4.25rem);
-  padding: clamp(1rem, 3vw, 2.5rem) max(1.25rem, calc((100vw - var(--ancho)) / 2)) 1.25rem;
+  grid-template-rows: auto auto;
+  column-gap: clamp(1rem, 3vw, 3rem);
+  padding-inline: max(1.25rem, calc((100vw - var(--ancho)) / 2));
   background: var(--cartel);
 }
 
 .portada__texto {
+  position: relative;
+  z-index: 2;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 1.25rem;
   min-width: 0;
+  min-height: calc(100dvh - var(--alto-barra));
+  padding-block: 1.5rem;
 }
 
 h1 {
@@ -21,6 +25,27 @@ h1 {
   font-stretch: 118%;
   line-height: 0.96;
   letter-spacing: -0.035em;
+}
+
+/* Cada palabra sube desde atrás de su línea, como un cartel que se pega de abajo hacia arriba. */
+.palabra {
+  display: inline-block;
+  margin-block: -0.18em;
+  padding-block: 0.18em;
+  overflow: clip;
+  vertical-align: top;
+}
+
+.palabra > span {
+  display: inline-block;
+  animation: subir 900ms var(--salida) both;
+  animation-delay: calc(var(--i) * 70ms + 80ms);
+}
+
+@keyframes subir {
+  from {
+    transform: translateY(115%) rotate(3deg);
+  }
 }
 
 .bajada {
@@ -51,6 +76,16 @@ h1 {
   font: inherit;
   font-size: 1.15rem;
   font-weight: 550;
+  box-shadow: 4px 4px 0 var(--tinta);
+  transition:
+    box-shadow 160ms var(--salida),
+    transform 160ms var(--salida);
+}
+
+.buscador input:focus {
+  outline: none;
+  box-shadow: 1px 1px 0 var(--tinta);
+  transform: translate(3px, 3px);
 }
 
 .resultados {
@@ -61,7 +96,7 @@ h1 {
   right: 0;
   display: grid;
   max-height: 20rem;
-  margin-top: 0.4rem;
+  margin-top: 0.6rem;
   padding: 0.35rem;
   overflow-y: auto;
   border: 2px solid var(--tinta);
@@ -134,10 +169,15 @@ h1 {
 }
 
 .portada__mapa {
-  position: relative;
+  position: sticky;
+  top: var(--alto-barra);
+  grid-column: 2;
+  grid-row: 1 / span 2;
   display: grid;
+  align-self: start;
   min-width: 0;
-  min-height: 0;
+  height: calc(100dvh - var(--alto-barra));
+  padding-block: 0.75rem;
 }
 
 .aviso-mapa {
@@ -146,20 +186,90 @@ h1 {
   margin-inline: auto;
 }
 
+.relato {
+  grid-column: 1;
+  grid-row: 2;
+  position: relative;
+  z-index: 1;
+}
+
+.relato article {
+  display: grid;
+  align-content: center;
+  gap: 0.9rem;
+  min-height: 92dvh;
+}
+
+.relato h2 {
+  font-size: clamp(2rem, 3.8vw, 3.4rem);
+  font-weight: 900;
+  font-stretch: 116%;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.relato p {
+  font-size: clamp(1.05rem, 1.4vw, 1.25rem);
+  font-weight: 500;
+  max-width: 34ch;
+}
+
 .detalle {
   display: grid;
   grid-template-columns: minmax(0, 7fr) minmax(0, 5fr);
-  gap: clamp(2rem, 6vw, 5rem);
-  align-items: start;
-  padding-block: clamp(3rem, 7vw, 5.5rem);
+  gap: clamp(2rem, 6vw, 6rem);
+  align-items: center;
+  padding-block: 0 clamp(4rem, 8vw, 7rem);
+}
+
+/* La ranura de la que sale el ticket: una línea de tinta y nada que se vea por encima. */
+.impresora {
+  padding: 0 clamp(0rem, 3vw, 3rem) 2rem;
+  overflow: clip;
+  overflow-clip-margin: 0;
+  border-top: 10px solid var(--tinta);
+}
+
+.ticket--impreso {
+  max-width: 34rem;
+  margin-inline: auto;
+}
+
+.ticket--impreso.revela {
+  opacity: 1;
+  transform: translateY(-101%);
+  transition: transform 1500ms steps(14);
+}
+
+.ticket--impreso.revela--visto {
+  transform: none;
+}
+
+.ticket__cabeza,
+.ticket__pie {
+  max-width: none;
+  color: var(--tinta-suave);
+  font-size: 0.82rem;
+  text-align: center;
+}
+
+.ticket h2 {
+  margin-block: 1rem;
+  padding-block: 0.8rem;
+  border-block: 2px dashed var(--tinta);
+  font-family: var(--fuente);
+  font-size: clamp(1.2rem, 2vw, 1.5rem);
+  font-weight: 800;
+  text-align: center;
 }
 
 .baratos {
   display: grid;
-  margin: 1.25rem 0 1.5rem;
-  padding: 0;
+  gap: 0.8rem;
+  margin: 0 0 1rem;
+  padding: 0 0 1rem;
+  border-bottom: 2px dashed var(--tinta);
   list-style: none;
-  counter-reset: puesto;
 }
 
 .baratos li {
@@ -167,54 +277,129 @@ h1 {
   justify-content: space-between;
   align-items: baseline;
   gap: 1rem;
-  padding-block: 0.7rem;
-  border-bottom: 1px solid var(--linea);
+  line-height: 1.3;
 }
 
 .baratos strong {
   display: block;
-  font-size: 1.1rem;
+  font-size: 1rem;
+  font-weight: 600;
 }
 
 .baratos b {
   flex: none;
-  font-size: 1.35rem;
-  font-weight: 800;
-  font-stretch: 112%;
+  font-size: 1.1rem;
+  font-weight: 600;
 }
 
 .baratos li:first-child b {
   color: var(--barato);
 }
 
-.origen p {
-  color: var(--tinta-suave);
+.siguiente {
+  display: grid;
+  justify-items: start;
+  gap: 1rem;
+  font-size: 1.15rem;
+}
+
+.siguiente__titulo {
+  font-size: clamp(2rem, 4vw, 3.4rem);
+  font-weight: 900;
+  font-stretch: 116%;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.origen {
+  padding-block: clamp(4rem, 9vw, 8rem);
+  background: var(--tinta);
+  color: var(--papel);
+}
+
+.origen h2 {
+  max-width: 18ch;
+  font-size: clamp(2rem, 4.6vw, 4rem);
+  font-weight: 900;
+  font-stretch: 116%;
+  color: var(--cartel);
+}
+
+.cifras {
+  display: grid;
+  grid-template-columns: 3fr 1fr 1fr;
+  gap: 2rem clamp(1.5rem, 4vw, 4rem);
+  margin: clamp(2.5rem, 6vw, 5rem) 0;
+}
+
+.cifras div {
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+}
+
+.cifras div:nth-child(2) {
+  transition-delay: 90ms;
+}
+
+.cifras div:nth-child(3) {
+  transition-delay: 180ms;
+}
+
+.cifras dd {
+  margin: 0;
+  font-size: clamp(2.3rem, 6vw, 5.4rem);
+  font-weight: 900;
+  font-stretch: 112%;
+  letter-spacing: -0.03em;
+  line-height: 1;
+}
+
+.cifras div:first-child dd {
+  font-size: clamp(3rem, 9.4vw, 8.4rem);
+  color: var(--cartel);
+}
+
+.cierre {
+  padding-block: clamp(4rem, 9vw, 7.5rem);
+  background: var(--cartel);
+}
+
+.cierre .contenedor {
+  display: grid;
+  justify-items: start;
+  gap: 1.75rem;
+}
+
+.cierre h2 {
+  max-width: 19ch;
+  font-size: clamp(2.2rem, 5.6vw, 5rem);
+  font-weight: 900;
+  font-stretch: 118%;
+  letter-spacing: -0.035em;
+  line-height: 0.98;
 }
 
 @media (max-width: 860px) {
-  .portada {
-    display: flex;
-    flex-direction: column;
-    min-height: 0;
-    padding-top: 0.5rem;
+  .escenario {
+    display: block;
+    padding-bottom: 2rem;
   }
 
-  /* En el celular el mapa entra en la primera pantalla y la explicación queda debajo. */
   .portada__texto {
-    display: contents;
+    min-height: 0;
+    padding-block: 0.75rem 1rem;
   }
 
-  .portada h1 {
-    order: 1;
+  .bajada {
+    max-width: none;
   }
 
   .buscador {
-    order: 2;
     max-width: none;
   }
 
   .chips {
-    order: 3;
     flex-wrap: nowrap;
     margin-inline: -1.25rem;
     padding-inline: 1.25rem;
@@ -227,16 +412,42 @@ h1 {
   }
 
   .portada__mapa {
-    order: 4;
-    height: max(23rem, 50dvh);
+    height: max(23rem, 58svh);
+    padding-block: 0;
   }
 
-  .bajada {
-    order: 5;
+  /* En el celular el relato pasa por encima del mapa fijo, dejándolo ver entre tarjeta y tarjeta. */
+  .relato article {
+    min-height: 0;
+    margin-bottom: 62svh;
+    padding: 1.1rem 1.15rem;
+    border: 2px solid var(--tinta);
+    border-radius: var(--radio);
+    background: var(--papel);
+  }
+
+  .relato article:last-child {
+    margin-bottom: 0;
+  }
+
+  .relato h2 {
+    font-size: 1.6rem;
+  }
+
+  .relato p {
     max-width: none;
+    font-size: 1rem;
   }
 
   .detalle {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .cifras {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .cifras div:first-child {
+    grid-column: 1 / -1;
   }
 }

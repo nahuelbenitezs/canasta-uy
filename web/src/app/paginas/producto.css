@@ -1,17 +1,22 @@
 .pagina {
   display: grid;
   gap: clamp(2rem, 5vw, 3.5rem);
-  padding-block: 1.5rem clamp(3rem, 7vw, 5rem);
+  padding-block: 0 clamp(3rem, 7vw, 5rem);
 }
 
 .volver {
+  grid-row: 1;
+  z-index: 1;
   justify-self: start;
+  margin-top: 1.25rem;
   font-weight: 650;
 }
 
 h1 {
-  font-size: clamp(2rem, 4.6vw, 3.6rem);
+  font-size: clamp(2.2rem, 5.4vw, 4.6rem);
   font-weight: 900;
+  font-stretch: 116%;
+  letter-spacing: -0.03em;
   max-width: 22ch;
 }
 
@@ -21,8 +26,8 @@ h1 {
   align-items: end;
   justify-content: space-between;
   gap: 1.25rem;
-  padding-bottom: 1.5rem;
-  border-bottom: 2px solid var(--tinta);
+  grid-row: 1;
+  padding-block: 4rem clamp(2rem, 4vw, 3rem);
 }
 
 .ranking {
@@ -50,14 +55,14 @@ h1 {
 }
 
 .ranking b {
-  font-size: 1.4rem;
+  font-size: 1.7rem;
   font-weight: 800;
   font-stretch: 112%;
 }
 
 .barra {
   display: block;
-  height: 0.6rem;
+  height: 0.9rem;
   width: calc(var(--ancho) * 100%);
   border-radius: 0 4px 4px 0;
   background: var(--tinta);

@@ -15,8 +15,8 @@ import { CanastaStore } from './canasta-store';
       <a class="marca" routerLink="/">Canasta UY</a>
       <a class="enlace-canasta" routerLink="/canasta">
         Mi canasta
-        @if (canasta.cantidad() > 0) {
-          <span class="contador">{{ canasta.cantidad() }}</span>
+        @for (cantidad of canasta.cantidad() > 0 ? [canasta.cantidad()] : []; track cantidad) {
+          <span class="contador">{{ cantidad }}</span>
         }
       </a>
     </header>

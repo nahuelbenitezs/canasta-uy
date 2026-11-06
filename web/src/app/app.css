@@ -18,9 +18,32 @@
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  min-height: 4.25rem;
+  position: sticky;
+  z-index: 5;
+  top: 0;
+  min-height: var(--alto-barra);
   padding-inline: max(1.25rem, calc((100vw - var(--ancho)) / 2));
   background: var(--papel);
+  border-bottom: 2px solid var(--tinta);
+}
+
+@supports (animation-timeline: scroll()) {
+  .barra::after {
+    content: '';
+    position: absolute;
+    inset: auto 0 -2px;
+    height: 4px;
+    background: var(--barato);
+    transform-origin: left;
+    animation: avance linear both;
+    animation-timeline: scroll(root);
+  }
+}
+
+@keyframes avance {
+  from {
+    transform: scaleX(0);
+  }
 }
 
 .barra--cartel {
@@ -53,6 +76,13 @@
   background: var(--tinta);
   color: var(--cartel);
   font-size: 0.85rem;
+  animation: sello 420ms var(--salida);
+}
+
+@keyframes sello {
+  from {
+    transform: scale(1.7) rotate(-14deg);
+  }
 }
 
 main {

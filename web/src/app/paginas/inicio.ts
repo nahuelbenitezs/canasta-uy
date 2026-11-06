@@ -13,6 +13,7 @@ import { DatosService } from '../datos';
 import { entero, fecha, precio } from '../formato';
 import { masBaratos } from '../mapa/mapa-geometria';
 import { MapaPrecios } from '../mapa/mapa-precios';
+import { Paso, Revela } from '../revela';
 
 const ESPERA_BUSQUEDA_MS = 220;
 /** Productos de la canasta diaria para abrir el mapa, en el orden en que se muestran. */
@@ -27,13 +28,18 @@ const PORTADA = new Map([
 
 @Component({
   selector: 'app-inicio',
-  imports: [MapaPrecios, RouterLink],
+  imports: [MapaPrecios, Paso, Revela, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './inicio.css',
   template: `
-    <section class="portada">
-      <div class="portada__texto">
-        <h1>¿Dónde sale más barato?</h1>
+    <div class="escenario">
+      <section class="portada__texto" (appPaso)="paso.set(0)">
+        <h1>
+          <span class="palabra"><span style="--i: 0">¿Dónde</span></span>
+          <span class="palabra"><span style="--i: 1">sale</span></span>
+          <span class="palabra"><span style="--i: 2">más</span></span>
+          <span class="palabra"><span style="--i: 3">barato?</span></span>
+        </h1>
         <p class="bajada">
           Cada columna es un supermercado de Uruguay. Cuanto más alta, más caro vende el producto.
         </p>
@@ -80,39 +86,72 @@ const PORTADA = new Map([
             }
           </div>
         }
-      </div>
+      </section>
 
       <div class="portada__mapa">
-        <app-mapa-precios [datos]="datosMapa()" />
+        <app-mapa-precios [datos]="datosMapa()" [paso]="paso()" />
         @if (mapa.error() || destacados.error()) {
           <p class="aviso aviso-mapa" role="alert">
             No pudimos cargar los precios. Revisá tu conexión y recargá la página.
           </p>
         }
       </div>
-    </section>
+
+      @if (datosMapa(); as datos) {
+        <div class="relato">
+          <article (appPaso)="paso.set(1)">
+            <h2>{{ conPrecio() }} locales, un solo producto</h2>
+            <p>
+              Estás viendo {{ datos.producto.nombre }}. La altura va del percentil 5 al 95, así un
+              precio raro no tapa al resto.
+            </p>
+          </article>
+          <article (appPaso)="paso.set(2)">
+            <h2>{{ enMontevideo() }} están en Montevideo</h2>
+            <p>Girá el mapa y tocá una columna para ver el precio y la sucursal.</p>
+          </article>
+          <article (appPaso)="paso.set(3)">
+            <h2>Lo rojo es lo más barato</h2>
+            @if (baratos()[0]; as primero) {
+              <p>
+                Es el 10 % de precios más bajos. Abajo de todos: {{ primero.cadena }},
+                {{ primero.sucursal }}, con {{ formatoPrecio(primero.precio!) }}.
+              </p>
+            }
+          </article>
+        </div>
+      }
+    </div>
 
     <section class="contenedor detalle" aria-labelledby="titulo-baratos">
       @if (datosMapa(); as datos) {
-        <div>
-          <h2 id="titulo-baratos" class="seccion-titulo">{{ datos.producto.nombre }}</h2>
-          <p class="ayuda">
-            Los locales más baratos, con el precio habitual sin ofertas desde el
-            {{ formatoFecha(datos.desde) }}.
-          </p>
-          <ol class="baratos">
-            @for (local of baratos(); track local.id) {
-              <li>
-                <span>
-                  <strong>{{ local.cadena }}</strong>
-                  {{ local.sucursal }}, {{ local.barrio ?? local.departamento }}
-                </span>
-                <b>{{ formatoPrecio(local.precio!) }}</b>
-              </li>
-            } @empty {
-              <li>No hay precios recientes de este producto.</li>
-            }
-          </ol>
+        <div class="impresora">
+          @for (clave of [datos.producto.id]; track clave) {
+            <div class="ticket ticket--impreso" appRevela>
+              <p class="ticket__cabeza">Canasta UY<br />Los 5 locales más baratos</p>
+              <h2 id="titulo-baratos">{{ datos.producto.nombre }}</h2>
+              <ol class="baratos">
+                @for (local of baratos(); track local.id) {
+                  <li>
+                    <span>
+                      <strong>{{ local.cadena }}</strong>
+                      {{ local.sucursal }}, {{ local.barrio ?? local.departamento }}
+                    </span>
+                    <b>{{ formatoPrecio(local.precio!) }}</b>
+                  </li>
+                } @empty {
+                  <li>No hay precios recientes de este producto.</li>
+                }
+              </ol>
+              <p class="ticket__pie">
+                Precio habitual sin ofertas desde el {{ formatoFecha(datos.desde) }}.
+              </p>
+            </div>
+          }
+        </div>
+        <div class="siguiente" appRevela>
+          <p class="siguiente__titulo">¿Y entre cadenas?</p>
+          <p>Compará medianas por zona y mirá cómo cambió el precio semana a semana.</p>
           <a class="boton" [routerLink]="['/producto', datos.producto.id]">Comparar cadenas</a>
         </div>
       } @else {
@@ -121,18 +160,39 @@ const PORTADA = new Map([
           <span class="esqueleto" style="height: 15rem"></span>
         </div>
       }
+    </section>
 
-      @if (salud.hasValue()) {
-        <aside class="origen">
-          <h2 class="seccion-titulo">Precios que declaran los propios comercios</h2>
-          <p>
-            Usamos {{ formatoEntero(salud.value().precios_diarios) }} precios de
-            {{ formatoEntero(salud.value().locales) }} locales, publicados por Defensa del
-            Consumidor. Llegan con retraso: los últimos son del
+    @if (salud.hasValue()) {
+      <section class="origen" aria-labelledby="titulo-origen">
+        <div class="contenedor">
+          <h2 id="titulo-origen" appRevela>Precios que declaran los propios comercios</h2>
+          <dl class="cifras">
+            <div appRevela>
+              <dd>{{ formatoEntero(salud.value().precios_diarios) }}</dd>
+              <dt>precios</dt>
+            </div>
+            <div appRevela>
+              <dd>{{ formatoEntero(salud.value().locales) }}</dd>
+              <dt>locales</dt>
+            </div>
+            <div appRevela>
+              <dd>{{ formatoEntero(salud.value().productos) }}</dd>
+              <dt>presentaciones de productos</dt>
+            </div>
+          </dl>
+          <p appRevela>
+            Los publica Defensa del Consumidor y llegan con retraso: los últimos son del
             {{ formatoFecha(salud.value().datos_hasta) }}, así que no son los precios de hoy.
           </p>
-        </aside>
-      }
+        </div>
+      </section>
+    }
+
+    <section class="cierre" appRevela>
+      <div class="contenedor">
+        <h2>Sumá tu compra y mirá qué cadena te sale menos.</h2>
+        <a class="boton" routerLink="/canasta">Abrir mi canasta</a>
+      </div>
     </section>
   `,
 })
@@ -144,6 +204,7 @@ export class Inicio {
   protected readonly texto = signal('');
   protected readonly consulta = signal('');
   protected readonly elegido = signal<number | null>(null);
+  protected readonly paso = signal(0);
 
   private readonly datos = inject(DatosService);
   protected readonly salud = resource({ loader: () => this.datos.salud() });
@@ -172,6 +233,16 @@ export class Inicio {
     return this.ultimoMapa;
   });
   protected readonly baratos = computed(() => masBaratos(this.datosMapa()?.locales ?? [], 5));
+
+  protected readonly conPrecio = computed(
+    () => (this.datosMapa()?.locales ?? []).filter((local) => local.precio !== null).length,
+  );
+  protected readonly enMontevideo = computed(
+    () =>
+      (this.datosMapa()?.locales ?? []).filter(
+        (local) => local.precio !== null && local.departamento === 'Montevideo',
+      ).length,
+  );
 
   private espera?: ReturnType<typeof setTimeout>;
 

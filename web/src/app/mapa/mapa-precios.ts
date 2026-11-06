@@ -9,6 +9,7 @@ import {
   inject,
   input,
   signal,
+  untracked,
   viewChild,
 } from '@angular/core';
 import { animate as animarValor } from 'motion';
@@ -28,6 +29,14 @@ import { SILUETA_URUGUAY } from './uruguay';
 const COLOR_TINTA = 0x14140f;
 const COLOR_BARATO = 0xc8201a;
 const COLOR_SIN_DATO = 0xa98800;
+const COLOR_TENUE = 0xcdb65c;
+/** Qué muestra el mapa en cada paso del relato de la portada. */
+const PASOS: readonly { vista: Vista; giro: number; resaltar: boolean }[] = [
+  { vista: 'pais', giro: 0, resaltar: false },
+  { vista: 'pais', giro: 0.55, resaltar: false },
+  { vista: 'montevideo', giro: -0.3, resaltar: false },
+  { vista: 'pais', giro: -0.75, resaltar: true },
+];
 const ALTURA_MAXIMA = 2.15;
 const ALTURA_SIN_DATO = 0.03;
 const ACIMUT_INICIAL = 0.34;
@@ -98,6 +107,7 @@ const salidaExpo = (t: number): number => (t >= 1 ? 1 : 1 - 2 ** (-10 * t));
 })
 export class MapaPrecios {
   readonly datos = input<Mapa | undefined>();
+  readonly paso = input(0);
 
   protected readonly vista = signal<Vista>('pais');
   protected readonly seleccionado = signal<LocalMapa | null>(null);
@@ -135,6 +145,12 @@ export class MapaPrecios {
   private ultimaPosicion: { x: number; y: number } | null = null;
   private inicioRotacion = 0;
   private yaEntro = false;
+  private giro = 0;
+  private resaltado = 0;
+  private baratos: boolean[] = [];
+  private controlVista?: { stop(): void };
+  private controlGiro?: { stop(): void };
+  private controlTono?: { stop(): void };
   private readonly movimientoReducido = matchMedia('(prefers-reduced-motion: reduce)');
 
   constructor() {
@@ -144,6 +160,10 @@ export class MapaPrecios {
       if (datos && this.escena) {
         this.aplicarDatos(datos);
       }
+    });
+    effect(() => {
+      const paso = this.paso();
+      untracked(() => this.aplicarPaso(paso));
     });
     this.destroyRef.onDestroy(() => this.liberar());
   }
@@ -163,11 +183,64 @@ export class MapaPrecios {
       this.pedirDibujo();
       return;
     }
-    this.animar(this.progresoVista, destino, { duration: 0.9, ease: [0.16, 1, 0.3, 1] }, (valor) => {
+    this.controlVista?.stop();
+    this.controlVista = this.animar(this.progresoVista, destino, { duration: 0.9, ease: [0.16, 1, 0.3, 1] }, (valor) => {
       this.progresoVista = valor;
       this.dibujarColumnas();
       this.actualizarCamara();
     });
+  }
+
+  private aplicarPaso(indice: number): void {
+    const paso = PASOS[indice] ?? PASOS[0];
+    if (!this.escena) {
+      return;
+    }
+    this.cambiarVista(paso.vista);
+    const tono = paso.resaltar ? 1 : 0;
+    if (this.movimientoReducido.matches) {
+      this.giro = paso.giro;
+      this.resaltado = tono;
+      this.colorear();
+      this.actualizarCamara();
+      this.pedirDibujo();
+      return;
+    }
+    this.controlGiro?.stop();
+    this.controlGiro = this.animar(this.giro, paso.giro, { duration: 1.2, ease: [0.16, 1, 0.3, 1] }, (valor) => {
+      this.giro = valor;
+      this.actualizarCamara();
+    });
+    if (this.resaltado !== tono) {
+      this.controlTono?.stop();
+      this.controlTono = this.animar(this.resaltado, tono, { duration: 0.6 }, (valor) => {
+        this.resaltado = valor;
+        this.colorear();
+      });
+    }
+  }
+
+  private colorear(): void {
+    const escena = this.escena;
+    const columnas = escena?.columnas;
+    if (!escena || !columnas) {
+      return;
+    }
+    const color = new escena.THREE.Color();
+    const tenue = new escena.THREE.Color(COLOR_TENUE);
+    this.locales.forEach((local, i) => {
+      if (local.precio === null) {
+        color.setHex(COLOR_SIN_DATO);
+      } else if (this.baratos[i]) {
+        color.setHex(COLOR_BARATO);
+      } else {
+        color.setHex(COLOR_TINTA).lerp(tenue, this.resaltado);
+      }
+      columnas.setColorAt(i, color);
+    });
+    if (columnas.instanceColor) {
+      columnas.instanceColor.needsUpdate = true;
+    }
   }
 
   protected alPresionar(evento: PointerEvent): void {
@@ -233,6 +306,9 @@ export class MapaPrecios {
     }
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.shadowMap.enabled = true;
+    // Las sombras solo cambian con las columnas, no con la cámara: ahorra batería en el celular.
+    renderer.shadowMap.autoUpdate = false;
+    renderer.shadowMap.needsUpdate = true;
     renderer.shadowMap.type = three.PCFShadowMap;
 
     const scene = new three.Scene();
@@ -294,6 +370,7 @@ export class MapaPrecios {
     if (datos) {
       this.aplicarDatos(datos);
     }
+    this.aplicarPaso(this.paso());
   }
 
   private liberado = false;
@@ -315,23 +392,12 @@ export class MapaPrecios {
 
     const precios = datos.locales.map((local) => local.precio);
     const relativas = alturasRelativas(precios);
-    const baratos = marcarBaratos(precios);
-    const color = new escena.THREE.Color();
+    this.baratos = marcarBaratos(precios);
     this.alturasOrigen = this.alturasActuales.slice();
     this.alturasDestino = Float32Array.from(relativas, (a) =>
       a === null ? ALTURA_SIN_DATO : ALTURA_MAXIMA * (0.12 + 0.88 * a),
     );
-    const columnas = escena.columnas;
-    if (columnas) {
-      datos.locales.forEach((local, i) => {
-        const tono =
-          local.precio === null ? COLOR_SIN_DATO : baratos[i] ? COLOR_BARATO : COLOR_TINTA;
-        columnas.setColorAt(i, color.setHex(tono));
-      });
-      if (columnas.instanceColor) {
-        columnas.instanceColor.needsUpdate = true;
-      }
-    }
+    this.colorear();
     this.transicionarAlturas();
   }
 
@@ -391,7 +457,7 @@ export class MapaPrecios {
     hasta: number,
     opciones: Record<string, unknown>,
     alActualizar: (valor: number) => void,
-  ): void {
+  ): { stop(): void } {
     const control = animarValor(desde, hasta, {
       ...opciones,
       onUpdate: (valor: number) => {
@@ -401,6 +467,7 @@ export class MapaPrecios {
     });
     this.animaciones.add(control);
     void control.then(() => this.animaciones.delete(control));
+    return control;
   }
 
   private dibujarColumnas(): void {
@@ -464,9 +531,9 @@ export class MapaPrecios {
   /** Un vaivén lento mientras nadie tocó el mapa, para que se lea como un objeto en 3D. */
   private acimutActual(): number {
     if (this.usuarioRoto || this.movimientoReducido.matches) {
-      return this.acimut;
+      return this.acimut + this.giro;
     }
-    return this.acimut + Math.sin((performance.now() - this.inicioRotacion) / 7000) * 0.16;
+    return this.acimut + this.giro + Math.sin((performance.now() - this.inicioRotacion) / 7000) * 0.16;
   }
 
   private pedirDibujo(): void {

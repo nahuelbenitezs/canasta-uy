@@ -13,10 +13,11 @@ import { CanastaStore } from '../canasta-store';
 import { DatosService } from '../datos';
 import { fecha, locales, precio } from '../formato';
 import { HistorialPrecios } from '../historial/historial-precios';
+import { Revela } from '../revela';
 
 @Component({
   selector: 'app-producto',
-  imports: [HistorialPrecios, RouterLink],
+  imports: [HistorialPrecios, Revela, RouterLink],
   changeDetection: ChangeDetectionStrategy.OnPush,
   styleUrl: './producto.css',
   template: `
@@ -33,7 +34,7 @@ import { HistorialPrecios } from '../historial/historial-precios';
           </p>
         }
       } @else {
-        <header class="cabecera">
+        <header class="cabecera banda">
           @if (comparacion.hasValue()) {
             <h1>{{ comparacion.value().producto.nombre }}</h1>
             <button
@@ -118,7 +119,7 @@ import { HistorialPrecios } from '../historial/historial-precios';
           }
         </section>
 
-        <section aria-labelledby="titulo-historial" class="historial">
+        <section aria-labelledby="titulo-historial" class="historial" appRevela>
           <h2 id="titulo-historial" class="seccion-titulo">Cómo cambió el precio</h2>
           <label class="campo selector-cadena">
             Cadena

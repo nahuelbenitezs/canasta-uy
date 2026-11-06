@@ -11,7 +11,7 @@ import { fecha, precio } from '../formato';
   styleUrl: './canasta.css',
   template: `
     <div class="contenedor pagina">
-      <h1>Mi canasta</h1>
+      <h1 class="banda">Mi canasta</h1>
 
       @if (store.cantidad() === 0) {
         <div class="vacia">
@@ -76,7 +76,7 @@ import { fecha, precio } from '../formato';
                 No pudimos calcular la canasta. Revisá tu conexión y recargá la página.
               </p>
             } @else if (resultado.hasValue()) {
-              <ol class="totales" aria-live="polite">
+              <ol class="totales ticket" aria-live="polite">
                 @for (fila of completas(); track fila.cadena; let i = $index) {
                   <li [class.ganadora]="i === 0 && completas().length > 1">
                     <strong>{{ fila.cadena }}</strong>

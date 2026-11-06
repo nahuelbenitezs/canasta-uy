@@ -1,4 +1,6 @@
 @import '@fontsource-variable/archivo/wdth.css';
+@import '@fontsource/ibm-plex-mono/latin-400.css';
+@import '@fontsource/ibm-plex-mono/latin-600.css';
 
 :root {
   color-scheme: light;
@@ -14,6 +16,8 @@
   --fuente: 'Archivo Variable', 'Archivo', system-ui, sans-serif;
   --salida: cubic-bezier(0.16, 1, 0.3, 1);
   --ancho: 76rem;
+  --alto-barra: 3.75rem;
+  --mono: 'IBM Plex Mono', ui-monospace, monospace;
 }
 
 *,
@@ -25,6 +29,7 @@
 html {
   scrollbar-color: var(--tinta-suave) var(--papel-hondo);
   -webkit-text-size-adjust: 100%;
+  scroll-padding-top: var(--alto-barra);
 }
 
 body {
@@ -36,6 +41,7 @@ body {
   font-size: 1.0625rem;
   line-height: 1.5;
   font-variant-numeric: tabular-nums;
+  overflow-x: clip;
 }
 
 ::selection {
@@ -98,7 +104,8 @@ a {
 }
 
 .boton:hover {
-  background: #33332a;
+  background: var(--cartel);
+  color: var(--tinta);
 }
 
 .boton:active {
@@ -167,6 +174,39 @@ a {
   to {
     opacity: 0.45;
   }
+}
+
+/* Franja amarilla de punta a punta, sin desbordar la página. */
+.banda {
+  background: var(--cartel);
+  border-image: conic-gradient(var(--cartel) 0 0) fill 0 / 0 / 0 100vmax;
+}
+
+/* Ticket de caja: papel con el borde picado arriba y abajo. */
+.ticket {
+  --diente: 7px;
+  padding: 1.6rem 1.25rem;
+  background: #fffef9;
+  color: var(--tinta);
+  font-family: var(--mono);
+  font-size: 0.92rem;
+  filter: drop-shadow(0 18px 22px rgb(58 47 0 / 22%));
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / calc(2 * var(--diente)) 51% repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / calc(2 * var(--diente)) 51% repeat-x;
+}
+
+.revela {
+  opacity: 0;
+  transform: translateY(2rem);
+  transition:
+    opacity 600ms ease-out,
+    transform 900ms var(--salida);
+}
+
+.revela--visto {
+  opacity: 1;
+  transform: none;
 }
 
 .oculto-visual {

@@ -1,13 +1,14 @@
 .pagina {
-  padding-block: 1.5rem clamp(3rem, 7vw, 5rem);
+  padding-block: 0 clamp(3rem, 7vw, 5rem);
 }
 
 h1 {
-  margin-bottom: 2rem;
-  padding-bottom: 1.25rem;
-  border-bottom: 2px solid var(--tinta);
-  font-size: clamp(2.4rem, 5vw, 4rem);
+  margin-bottom: 2.5rem;
+  padding-block: clamp(2rem, 5vw, 4rem);
+  font-size: clamp(2.8rem, 8vw, 7rem);
   font-weight: 900;
+  font-stretch: 118%;
+  letter-spacing: -0.035em;
 }
 
 .vacia {
@@ -60,7 +61,6 @@ h1 {
   display: grid;
   gap: 0.25rem;
   margin: 1.5rem 0 1rem;
-  padding: 0;
   list-style: none;
 }
 
@@ -74,13 +74,13 @@ h1 {
 }
 
 .totales strong {
-  font-size: 1.1rem;
+  font-size: 1.05rem;
+  font-weight: 600;
 }
 
 .totales b {
-  font-size: 1.4rem;
-  font-weight: 800;
-  font-stretch: 112%;
+  font-size: 1.2rem;
+  font-weight: 600;
 }
 
 .totales .ganadora {
