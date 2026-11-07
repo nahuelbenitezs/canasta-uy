@@ -119,6 +119,32 @@ import { Revela } from '../revela';
           }
         </section>
 
+        @if (online.hasValue() && online.value().ofertas.length > 0) {
+          <section aria-labelledby="titulo-online" appRevela>
+            <h2 id="titulo-online" class="seccion-titulo">Comprarlo online</h2>
+            <ul class="online">
+              @for (oferta of online.value().ofertas; track oferta.url) {
+                <li>
+                  <strong>{{ oferta.cadena }}</strong>
+                  <b>{{ formatoPrecio(oferta.precio) }}</b>
+                  <a
+                    class="boton"
+                    [href]="oferta.url"
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    [attr.aria-label]="'Ver en la tienda de ' + oferta.cadena"
+                    >Ver en la tienda</a
+                  >
+                </li>
+              }
+            </ul>
+            <p class="ayuda">
+              Precio de la web de cada cadena, revisado el {{ formatoFecha(online.value().actualizado) }}.
+              Puede cambiar según la zona de entrega. Unimos los productos automáticamente, así que confirmá la marca y el tamaño en la tienda.
+            </p>
+          </section>
+        }
+
         <section aria-labelledby="titulo-historial" class="historial" appRevela>
           <h2 id="titulo-historial" class="seccion-titulo">Cómo cambió el precio</h2>
           <label class="campo selector-cadena">
@@ -173,6 +199,10 @@ export class Producto {
       semanas: this.semanas(),
     }),
     loader: ({ params: { id, semanas, ...zona } }) => this.datos.comparacion(id, zona, semanas),
+  });
+  protected readonly online = resource({
+    params: () => this.id(),
+    loader: ({ params }) => this.datos.tiendas(params),
   });
   protected readonly historial = resource({
     params: () => ({

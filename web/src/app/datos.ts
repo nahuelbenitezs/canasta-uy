@@ -22,12 +22,39 @@ export class ProductoNoEncontrado extends Error {
   }
 }
 
+export interface OfertaOnline {
+  cadena: string;
+  precio: number;
+  url: string;
+}
+
+export interface PreciosOnline {
+  actualizado: string;
+  ofertas: OfertaOnline[];
+}
+
+interface ArchivoTiendas {
+  actualizado: string;
+  productos: Record<string, OfertaOnline[]>;
+}
+
 /** Lee los archivos estáticos publicados con la web y calcula en el navegador cada consulta. */
 @Injectable({ providedIn: 'root' })
 export class DatosService {
   private readonly http = inject(HttpClient);
   private catalogoEnCurso?: Promise<Catalogo>;
   private readonly matrices = new Map<number, Promise<MatrizPrecios>>();
+  private tiendasEnCurso?: Promise<ArchivoTiendas>;
+
+  /** Precios online del producto. Si el archivo falla, la página sigue con los datos oficiales. */
+  async tiendas(id: number): Promise<PreciosOnline> {
+    this.tiendasEnCurso ??= firstValueFrom(
+      this.http.get<ArchivoTiendas>('datos/tiendas.json'),
+    ).catch(() => ({ actualizado: '', productos: {} }));
+    const { actualizado, productos } = await this.tiendasEnCurso;
+    const ofertas = [...(productos[id] ?? [])].sort((a, b) => a.precio - b.precio);
+    return { actualizado, ofertas };
+  }
 
   private catalogo(): Promise<Catalogo> {
     this.catalogoEnCurso ??= firstValueFrom(this.http.get<Catalogo>('datos/catalogo.json')).catch(

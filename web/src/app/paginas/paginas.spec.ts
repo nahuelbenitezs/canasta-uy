@@ -39,6 +39,10 @@ function preparar(datos: Partial<Record<keyof DatosService, unknown>> = {}) {
           filtros: async () => FILTROS,
           comparacion: async () => COMPARACION,
           historial: async () => ({ producto: ARROZ, datos_hasta: '2026-09-30', puntos: [] }),
+          tiendas: async () => ({
+            actualizado: "2026-11-08",
+            ofertas: [{ cadena: "Disco", precio: 60, url: "https://www.disco.com.uy/product/arroz/1" }],
+          }),
           canasta,
           ...datos,
         },
@@ -125,5 +129,21 @@ describe('página de canasta', () => {
     expect(fixture.nativeElement.querySelectorAll('.totales li')).toHaveLength(2);
     expect(fixture.nativeElement.querySelector('.ganadora').textContent).toContain('A');
     expect(texto).toContain('1 cadenas no tienen todos los productos');
+  });
+});
+
+describe('precio online', () => {
+  beforeEach(() => localStorage.removeItem(CLAVE_CANASTA));
+
+  it('enlaza a la tienda en una pestaña nueva', async () => {
+    preparar();
+    const fixture = TestBed.createComponent(Producto);
+    fixture.componentRef.setInput('id', 3);
+    await fixture.whenStable();
+    fixture.detectChanges();
+    const enlace = fixture.nativeElement.querySelector('.online a') as HTMLAnchorElement;
+    expect(enlace.href).toBe('https://www.disco.com.uy/product/arroz/1');
+    expect(enlace.target).toBe('_blank');
+    expect(enlace.rel).toContain('noopener');
   });
 });

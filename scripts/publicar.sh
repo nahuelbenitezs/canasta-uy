@@ -3,7 +3,7 @@
 set -euo pipefail
 
 raiz="$(cd "$(dirname "$0")/.." && pwd)"
-remoto="$(git -C "$raiz" remote get-url origin)"
+remoto="${REMOTO:-$(git -C "$raiz" remote get-url origin)}"
 nombre="$(git -C "$raiz" config user.name)"
 correo="$(git -C "$raiz" config user.email)"
 
