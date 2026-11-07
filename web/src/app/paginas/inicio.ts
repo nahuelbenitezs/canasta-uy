@@ -35,9 +35,9 @@ const PORTADA = new Map([
     <div class="escenario">
       <section class="portada__texto" (appPaso)="paso.set(0)">
         <h1>
-          <span class="palabra"><span style="--i: 0">¿Dónde</span></span>
-          <span class="palabra"><span style="--i: 1">sale</span></span>
-          <span class="palabra"><span style="--i: 2">más</span></span>
+          <span class="palabra"><span style="--i: 0">¿Dónde</span></span>&ngsp;
+          <span class="palabra"><span style="--i: 1">sale</span></span>&ngsp;
+          <span class="palabra"><span style="--i: 2">más</span></span>&ngsp;
           <span class="palabra"><span style="--i: 3">barato?</span></span>
         </h1>
         <p class="bajada">
@@ -101,10 +101,8 @@ const PORTADA = new Map([
         <div class="relato">
           <article (appPaso)="paso.set(1)">
             <h2>{{ conPrecio() }} locales, un solo producto</h2>
-            <p>
-              Estás viendo {{ datos.producto.nombre }}. La altura va del percentil 5 al 95, así un
-              precio raro no tapa al resto.
-            </p>
+            <p><strong>{{ datos.producto.nombre }}</strong></p>
+            <p>La altura va del percentil 5 al 95, así un precio raro no tapa al resto.</p>
           </article>
           <article (appPaso)="paso.set(2)">
             <h2>{{ enMontevideo() }} están en Montevideo</h2>
@@ -114,7 +112,7 @@ const PORTADA = new Map([
             <h2>Lo rojo es lo más barato</h2>
             @if (baratos()[0]; as primero) {
               <p>
-                Es el 10 % de precios más bajos. Abajo de todos: {{ primero.cadena }},
+                Es el 10 % de precios más bajos. El menor: {{ primero.cadena }},
                 {{ primero.sucursal }}, con {{ formatoPrecio(primero.precio!) }}.
               </p>
             }
@@ -125,9 +123,9 @@ const PORTADA = new Map([
 
     <section class="contenedor detalle" aria-labelledby="titulo-baratos">
       @if (datosMapa(); as datos) {
-        <div class="impresora">
+        <div class="impresora" appRevela>
           @for (clave of [datos.producto.id]; track clave) {
-            <div class="ticket ticket--impreso" appRevela>
+            <div class="ticket ticket--impreso">
               <p class="ticket__cabeza">Canasta UY<br />Los 5 locales más baratos</p>
               <h2 id="titulo-baratos">{{ datos.producto.nombre }}</h2>
               <ol class="baratos">

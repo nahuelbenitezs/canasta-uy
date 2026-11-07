@@ -235,14 +235,25 @@ h1 {
   margin-inline: auto;
 }
 
-.ticket--impreso.revela {
+/* Se observa la ranura, no el ticket: mientras el ticket está recortado nunca se vería. */
+.impresora.revela {
   opacity: 1;
-  transform: translateY(-101%);
-  transition: transform 1500ms steps(14);
+  transform: none;
 }
 
-.ticket--impreso.revela--visto {
-  transform: none;
+.impresora.revela:not(.revela--visto) .ticket--impreso {
+  visibility: hidden;
+}
+
+/* Al cambiar de producto el ticket se crea de nuevo y vuelve a imprimirse. */
+.impresora.revela--visto .ticket--impreso {
+  animation: imprimir 1500ms steps(14) both;
+}
+
+@keyframes imprimir {
+  from {
+    transform: translateY(-101%);
+  }
 }
 
 .ticket__cabeza,
@@ -327,7 +338,8 @@ h1 {
 
 .cifras {
   display: grid;
-  grid-template-columns: 3fr 1fr 1fr;
+  grid-template-columns: auto auto auto;
+  justify-content: space-between;
   gap: 2rem clamp(1.5rem, 4vw, 4rem);
   margin: clamp(2.5rem, 6vw, 5rem) 0;
 }
@@ -348,7 +360,7 @@ h1 {
 
 .cifras dd {
   margin: 0;
-  font-size: clamp(2.3rem, 6vw, 5.4rem);
+  font-size: clamp(2.3rem, 4.4vw, 4rem);
   font-weight: 900;
   font-stretch: 112%;
   letter-spacing: -0.03em;
@@ -356,7 +368,7 @@ h1 {
 }
 
 .cifras div:first-child dd {
-  font-size: clamp(3rem, 9.4vw, 8.4rem);
+  font-size: clamp(2.9rem, 6.6vw, 6rem);
   color: var(--cartel);
 }
 
@@ -445,6 +457,7 @@ h1 {
 
   .cifras {
     grid-template-columns: 1fr 1fr;
+    justify-content: stretch;
   }
 
   .cifras div:first-child {
