@@ -2,7 +2,15 @@ name: Actualizar datos
 
 on:
   schedule:
-    - cron: "30 7 * * *"
+    - cron: "37 19 * * *"
+  push:
+    branches: [main]
+    paths:
+      - ".github/workflows/datos.yml"
+      - "pyproject.toml"
+      - "scripts/**"
+      - "src/canasta_etl/**"
+      - "web/**"
   workflow_dispatch:
 
 permissions:
@@ -33,7 +41,15 @@ jobs:
           npm ci --prefix web
       - name: Datos oficiales
         run: python scripts/actualizar_datos.py
+      - name: Referencia nacional del SIPC
+        continue-on-error: true
+        run: |
+          if [[ ! -f web/public/datos/recientes.json ]] && git cat-file -e gh-pages:datos/recientes.json; then
+            git show gh-pages:datos/recientes.json > web/public/datos/recientes.json
+          fi
+          python -m canasta_etl.recientes web/public/datos
       - name: Precios online
+        continue-on-error: true
         run: python -m canasta_etl.tiendas web/public/datos
       - name: Publicar
         env:

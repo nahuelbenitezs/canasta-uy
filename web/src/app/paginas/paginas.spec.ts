@@ -192,3 +192,22 @@ describe('precio online', () => {
     expect(filas[2].querySelector('time')?.dateTime).toBe('2001-01-01');
   });
 });
+
+it('muestra el resumen nacional fechado aunque el producto no tenga precio online', async () => {
+  preparar({
+    tiendas: async () => ({ actualizado: '', ofertas: [] }),
+    referenciasRecientes: async () => ({
+      actualizado: '2026-11-23',
+      productos: { 3: { mediana: 110, p10: 90, p90: 130, locales: 140 } },
+    }),
+  });
+  const fixture = TestBed.createComponent(Producto);
+  fixture.componentRef.setInput('id', 3);
+  await fixture.whenStable();
+  fixture.detectChanges();
+
+  const referencia = fixture.nativeElement.querySelector('.referencia') as HTMLElement;
+  expect(referencia.querySelector('time')?.dateTime).toBe('2026-11-23');
+  expect(referencia.textContent).toContain('140 locales');
+  expect(referencia.querySelector('a')?.href).toContain('cambio-uruguay.com');
+});
