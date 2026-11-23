@@ -1,6 +1,8 @@
+from datetime import date
+
 import pytest
 
-from canasta_etl.tiendas import cantidad, elegir_url, es_razonable, extraer_precio
+from canasta_etl.tiendas import cantidad, combinar_precios, elegir_url, es_razonable, extraer_precio
 
 YERBA = {
     "id": 1,
@@ -69,3 +71,31 @@ def test_descarta_variantes_y_productos_muy_distintos():
     assert elegir_url(aceite, [f"{BASE}/aceite-girasol-optimo-maiz-900-ml/1"]) is None
     assert elegir_url(YERBA, [f"{BASE}/yerba-baldo-tradicion-premium-seleccion-1-kg/1"]) is None
     assert elegir_url(aceite, [f"{BASE}/aceite-girasol-optimo-900-ml/2"]) is not None
+
+
+def test_guarda_solo_la_fecha_de_consulta_real_de_cada_tienda():
+    disco = {"cadena": "Disco", "precio": 100, "url": f"{BASE}/yerba-baldo-1-kg/1"}
+    devoto = {"cadena": "Devoto", "precio": 99, "url": "https://www.devoto.com.uy/product/yerba/1"}
+    respaldo = {"actualizado": "2026-11-22", "productos": {"1": [disco, devoto]}}
+    hoy = date(2026, 11, 23)
+
+    salida = combinar_precios(respaldo, {"1": [disco | {"precio": 110}]}, {"1"}, hoy)
+
+    assert salida == {
+        "actualizado": "2026-11-23",
+        "productos": {
+            "1": [
+                disco | {"precio": 110, "actualizado": "2026-11-23"},
+                devoto | {"actualizado": "2026-11-22"},
+            ],
+        },
+    }
+
+
+def test_no_presenta_una_consulta_fallida_como_actualizacion():
+    oferta = {"cadena": "Disco", "precio": 100, "url": f"{BASE}/yerba-baldo-1-kg/1"}
+    anterior = {"actualizado": "2026-11-21", "productos": {"1": [oferta]}}
+
+    salida = combinar_precios(anterior, {}, {"1"}, date(2026, 11, 23))
+    assert salida["actualizado"] == "2026-11-21"
+    assert combinar_precios(anterior, {}, {"1"}, date(2026, 12, 23))["productos"] == {}

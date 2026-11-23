@@ -40,14 +40,22 @@ jobs:
           python -m pip install -q -e .
           npm ci --prefix web
       - name: Datos oficiales
-        run: python scripts/actualizar_datos.py
+        shell: bash
+        run: |
+          if ! python scripts/actualizar_datos.py; then
+            echo "::warning::SIPC no disponible. Se reutiliza el histórico publicado."
+            git archive gh-pages datos | tar -xf - -C web/public
+          fi
+      - name: Recuperar los últimos precios consultados
+        run: |
+          for archivo in recientes.json tiendas.json; do
+            if [[ ! -f "web/public/datos/$archivo" ]] && git cat-file -e "gh-pages:datos/$archivo" 2>/dev/null; then
+              git show "gh-pages:datos/$archivo" > "web/public/datos/$archivo"
+            fi
+          done
       - name: Referencia nacional del SIPC
         continue-on-error: true
-        run: |
-          if [[ ! -f web/public/datos/recientes.json ]] && git cat-file -e gh-pages:datos/recientes.json; then
-            git show gh-pages:datos/recientes.json > web/public/datos/recientes.json
-          fi
-          python -m canasta_etl.recientes web/public/datos
+        run: python -m canasta_etl.recientes web/public/datos
       - name: Precios online
         continue-on-error: true
         run: python -m canasta_etl.tiendas web/public/datos

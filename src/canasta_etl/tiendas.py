@@ -11,12 +11,15 @@ import re
 import sys
 import time
 import unicodedata
-from datetime import date
+from datetime import date, datetime
 from pathlib import Path
 from urllib.parse import urlsplit
 from urllib.robotparser import RobotFileParser
+from zoneinfo import ZoneInfo
 
 import requests
+
+from canasta_etl.json_atomico import escribir_json
 
 TIENDAS = {
     "Disco": "https://www.disco.com.uy",
@@ -25,6 +28,7 @@ TIENDAS = {
 }
 CABECERAS = {"User-Agent": "CanastaUY/0.1 (+https://github.com/nahuelbenitezs/canasta-uy)"}
 PAUSA_S = 1.0
+DIAS_DE_CONSERVACION = 30
 UNIDADES = {
     "kg": ("g", 1000), "kgs": ("g", 1000), "g": ("g", 1), "gr": ("g", 1), "grs": ("g", 1),
     "l": ("ml", 1000), "lt": ("ml", 1000), "lts": ("ml", 1000), "litro": ("ml", 1000),
@@ -106,15 +110,30 @@ def es_razonable(precio: float, referencia: float | None) -> bool:
 
 def _urls_de_tienda(base: str, sesion: requests.Session) -> tuple[list[str], RobotFileParser]:
     robots = RobotFileParser()
-    robots.parse(sesion.get(f"{base}/robots.txt", headers=CABECERAS, timeout=30).text.splitlines())
-    indice = sesion.get(f"{base}/sitemap.xml", headers=CABECERAS, timeout=30)
+    reglas = sesion.get(f"{base}/robots.txt", headers=CABECERAS, timeout=30)
+    if reglas.status_code != 404:
+        reglas.raise_for_status()
+        robots.parse(reglas.text.splitlines())
+    else:
+        robots.parse([])
+    principal = f"{base}/sitemap.xml"
+    agente = CABECERAS["User-Agent"]
+    if not robots.can_fetch(agente, principal):
+        return [], robots
+    indice = sesion.get(principal, headers=CABECERAS, timeout=30)
     indice.raise_for_status()
     urls: list[str] = []
     for mapa in re.findall(r"<loc>\s*([^<\s]+)", indice.text):
+        if not mapa.startswith(f"{base}/") or not robots.can_fetch(agente, mapa):
+            continue
         time.sleep(PAUSA_S)
         pagina = sesion.get(mapa, headers=CABECERAS, timeout=60)
         pagina.raise_for_status()
-        urls += [u for u in re.findall(r"<loc>\s*([^<\s]+)", pagina.text) if "/product/" in u]
+        urls += [
+            u
+            for u in re.findall(r"<loc>\s*([^<\s]+)", pagina.text)
+            if u.startswith(f"{base}/product/")
+        ]
     return urls, robots
 
 
@@ -125,15 +144,23 @@ def buscar_precios(
 ) -> dict[str, list[dict]]:
     sesion = sesion or requests.Session()
     resultado: dict[str, list[dict]] = {}
+    tipos = {
+        producto["id"]: normalizar(producto["producto"]).partition(" ")[0] for producto in productos
+    }
     for cadena, base in TIENDAS.items():
         try:
             urls, robots = _urls_de_tienda(base, sesion)
         except requests.RequestException as error:
             print(f"{cadena}: se omite ({error})", file=sys.stderr)
             continue
+        por_tipo: dict[str, list[str]] = {tipo: [] for tipo in tipos.values() if tipo}
+        for url in dict.fromkeys(urls):
+            palabras = normalizar(_slug(url)).split()
+            for tipo in por_tipo.keys() & set(palabras):
+                por_tipo[tipo].append(url)
         hallados = 0
         for producto in productos:
-            url = elegir_url(producto, urls)
+            url = elegir_url(producto, por_tipo.get(tipos[producto["id"]], []))
             if not url or not robots.can_fetch(CABECERAS["User-Agent"], url):
                 continue
             time.sleep(PAUSA_S)
@@ -157,6 +184,29 @@ def _referencia(matriz: dict) -> float | None:
     return valores[len(valores) // 2] if valores else None
 
 
+def combinar_precios(
+    anterior: dict, nuevos: dict[str, list[dict]], ids: set[str], hoy: date
+) -> dict:
+    productos = {}
+    ultimo = ""
+    fecha_anterior = anterior.get("actualizado", "")
+    for codigo in sorted(ids, key=int):
+        por_tienda = {}
+        for oferta in anterior.get("productos", {}).get(codigo, []):
+            try:
+                fecha = date.fromisoformat(oferta.get("actualizado", fecha_anterior))
+            except (TypeError, ValueError):
+                continue
+            if 0 <= (hoy - fecha).days <= DIAS_DE_CONSERVACION:
+                por_tienda[oferta["cadena"]] = {**oferta, "actualizado": fecha.isoformat()}
+        for oferta in nuevos.get(codigo, []):
+            por_tienda[oferta["cadena"]] = {**oferta, "actualizado": hoy.isoformat()}
+        if por_tienda:
+            productos[codigo] = list(por_tienda.values())
+            ultimo = max(ultimo, *(oferta["actualizado"] for oferta in por_tienda.values()))
+    return {"actualizado": ultimo, "productos": productos}
+
+
 def main(argv: list[str] | None = None) -> int:
     datos = Path((argv or sys.argv[1:] or ["web/public/datos"])[0])
     catalogo = json.loads((datos / "catalogo.json").read_text("utf-8"))
@@ -165,12 +215,17 @@ def main(argv: list[str] | None = None) -> int:
         matriz = json.loads((datos / "precios" / f"{producto['id']}.json").read_text("utf-8"))
         referencias[producto["id"]] = _referencia(matriz)
     precios = buscar_precios(catalogo["productos"], referencias)
-    salida = {"actualizado": date.today().isoformat(), "productos": precios}
-    (datos / "tiendas.json").write_text(
-        json.dumps(salida, ensure_ascii=False, separators=(",", ":")), "utf-8"
-    )
-    print(f"Productos con precio online: {len(precios)}")
-    return 0
+    destino = datos / "tiendas.json"
+    try:
+        anterior = json.loads(destino.read_text("utf-8"))
+    except (FileNotFoundError, ValueError):
+        anterior = {}
+    ids = {str(producto["id"]) for producto in catalogo["productos"]}
+    hoy = datetime.now(ZoneInfo("America/Montevideo")).date()
+    salida = combinar_precios(anterior, precios, ids, hoy)
+    escribir_json(destino, salida)
+    print(f"Productos consultados: {len(precios)}. Con registros: {len(salida['productos'])}.")
+    return 0 if precios else 1
 
 
 if __name__ == "__main__":

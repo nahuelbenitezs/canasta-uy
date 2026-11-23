@@ -5,12 +5,13 @@ from __future__ import annotations
 import json
 import math
 import sys
-import tempfile
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
 import requests
+
+from canasta_etl.json_atomico import escribir_json
 
 FUENTE = "https://api.cambio-uruguay.com/precios/articles"
 CABECERAS = {"User-Agent": "CanastaUY/0.1 (+https://github.com/nahuelbenitezs/canasta-uy)"}
@@ -63,14 +64,7 @@ def actualizar(datos: Path, hoy: date) -> dict:
         except (TypeError, ValueError, KeyError):
             print("Se reemplaza el resumen anterior porque está dañado.", file=sys.stderr)
 
-    temporal = tempfile.NamedTemporaryFile("w", encoding="utf-8", dir=datos, delete=False)
-    ruta_temporal = Path(temporal.name)
-    try:
-        with temporal:
-            json.dump(resumen, temporal, ensure_ascii=False, separators=(",", ":"))
-        ruta_temporal.replace(archivo)
-    finally:
-        ruta_temporal.unlink(missing_ok=True)
+    escribir_json(archivo, resumen)
     return resumen
 
 
