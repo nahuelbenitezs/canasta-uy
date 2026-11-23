@@ -6,7 +6,6 @@ import json
 import math
 import sys
 import tempfile
-import unicodedata
 from datetime import date, datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
@@ -15,12 +14,6 @@ import requests
 
 FUENTE = "https://api.cambio-uruguay.com/precios/articles"
 CABECERAS = {"User-Agent": "CanastaUY/0.1 (+https://github.com/nahuelbenitezs/canasta-uy)"}
-
-
-def _normalizar(texto: str) -> str:
-    return "".join(
-        letra for letra in unicodedata.normalize("NFD", texto.casefold()) if letra.isalnum()
-    )
 
 
 def _precio_valido(valor: object) -> bool:
@@ -32,15 +25,14 @@ def resumir(respuesta: dict, catalogo: list[dict], hoy: date) -> dict:
     if not 0 <= (hoy - fecha).days <= 7:
         raise ValueError(f"El resumen del {fecha} está fuera de los últimos siete días")
 
-    grupos = {producto["id"]: _normalizar(producto["producto"]) for producto in catalogo}
+    # El archivo SIPC y la API identifican cada presentación por el mismo código oficial.
+    ids = {producto["id"] for producto in catalogo}
     productos = {}
     for articulo in respuesta["articles"]:
         if not isinstance(articulo, dict):
             continue
-        codigo, grupo = articulo.get("articleId"), articulo.get("group")
-        if type(codigo) is not int or not isinstance(grupo, str):
-            continue
-        if grupos.get(codigo) != _normalizar(grupo):
+        codigo = articulo.get("articleId")
+        if type(codigo) is not int or codigo not in ids:
             continue
 
         p10, mediana, p90 = (articulo.get(clave) for clave in ("p10", "p50", "p90"))
@@ -65,7 +57,8 @@ def actualizar(datos: Path, hoy: date) -> dict:
     if archivo.exists():
         try:
             anterior = json.loads(archivo.read_text(encoding="utf-8"))
-            if date.fromisoformat(anterior["actualizado"]) > date.fromisoformat(resumen["actualizado"]):
+            fecha_anterior = date.fromisoformat(anterior["actualizado"])
+            if fecha_anterior > date.fromisoformat(resumen["actualizado"]):
                 return anterior
         except (TypeError, ValueError, KeyError):
             print("Se reemplaza el resumen anterior porque está dañado.", file=sys.stderr)
