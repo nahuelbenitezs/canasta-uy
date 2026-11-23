@@ -20,8 +20,10 @@ describe('CanastaStore', () => {
   });
 
   it('recuerda la canasta entre visitas', () => {
-    crear().agregar({ id: 7, nombre: 'Yerba' });
-    expect(crear().items()).toEqual([{ id: 7, nombre: 'Yerba' }]);
+    const store = crear();
+    store.agregar({ id: 7, nombre: 'Yerba' });
+    store.cambiarCantidad(7, 3);
+    expect(crear().items()).toEqual([{ id: 7, nombre: 'Yerba', cantidad: 3 }]);
   });
 
   it('respeta el máximo que acepta la API', () => {
@@ -45,6 +47,6 @@ describe('CanastaStore', () => {
       CLAVE_CANASTA,
       JSON.stringify([{ id: 1, nombre: 'Bueno' }, { id: 'x', nombre: 'Malo' }, null]),
     );
-    expect(crear().ids()).toEqual([1]);
+    expect(crear().items()).toEqual([{ id: 1, nombre: 'Bueno', cantidad: 1 }]);
   });
 });

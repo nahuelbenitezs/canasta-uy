@@ -190,17 +190,17 @@ export function calcular_mapa(
 
 export function calcular_canasta(
   catalogo: Catalogo,
-  matrices: readonly { producto: Producto; matriz: MatrizPrecios }[],
+  matrices: readonly { producto: Producto; matriz: MatrizPrecios; cantidad?: number }[],
   filtro: FiltroZona,
   semanas = 4,
 ): Canasta {
   const hasta = catalogo.salud.datos_hasta;
   const desde = inicioPeriodo(hasta, semanas);
   const acumulado = new Map<string, { total: number; encontrados: Set<number> }>();
-  for (const { producto, matriz } of matrices) {
+  for (const { producto, matriz, cantidad = 1 } of matrices) {
     for (const [cadena, precios] of preciosPorCadena(catalogo, matriz, desde, filtro)) {
       const fila = acumulado.get(cadena) ?? { total: 0, encontrados: new Set<number>() };
-      fila.total += mediana(precios);
+      fila.total += mediana(precios) * cantidad;
       fila.encontrados.add(producto.id);
       acumulado.set(cadena, fila);
     }
@@ -222,7 +222,12 @@ export function calcular_canasta(
   return { productos: matrices.map((m) => m.producto), desde, datos_hasta: hasta, resultados };
 }
 
-export function buscar_productos(catalogo: Catalogo, texto: string, limite: number): ResultadoBusqueda {
+export function buscar_productos(
+  catalogo: Catalogo,
+  texto: string,
+  limite: number,
+  recientes?: ReadonlySet<number>,
+): ResultadoBusqueda {
   const terminos = normalizar(texto).split(/\s+/).filter(Boolean);
   const hallados = catalogo.productos.filter((producto) => {
     const contenido = normalizar(
@@ -230,6 +235,9 @@ export function buscar_productos(catalogo: Catalogo, texto: string, limite: numb
     );
     return terminos.every((termino) => contenido.includes(termino));
   });
+  if (recientes) {
+    hallados.sort((a, b) => Number(recientes.has(b.id)) - Number(recientes.has(a.id)));
+  }
   return { total: hallados.length, resultados: hallados.slice(0, limite) };
 }
 

@@ -2,15 +2,15 @@
 
 ## Para quién y para qué
 
-Personas que hacen las compras en Uruguay y quieren saber qué cadena suele ser más barata en su zona, cómo cambió un precio y cuánto les sale una canasta. Abre con un mapa 3D porque también es una pieza de portafolio de su autor.
+Personas que hacen las compras en Uruguay y quieren comparar precios recientes, armar una lista con cantidades y estimar cuánto pagarían por ella. El mapa 3D muestra cómo varían los precios habituales por local.
 
 ## Qué hace distinto a este producto
 
-Usa los precios diarios por local que publica Defensa del Consumidor, resumidos con medianas para que un precio mal declarado no distorsione el resultado.
+Combina consultas diarias a tiendas online, un resumen nacional reciente del SIPC y el archivo del SIPC para comparar zonas y seguir tendencias. Los precios históricos se resumen con medianas para reducir el efecto de valores atípicos.
 
 ## Hechos que hay que respetar
 
-- Los datos llegan con retraso: nunca presentarlos como precios de hoy y mostrar siempre hasta qué fecha llegan.
+- Mostrar la fecha de consulta de cada precio online y el período de los precios históricos. Excluir de la búsqueda y los totales online los precios de más de siete días.
 - Los precios los declaran los comercios. Hablar de precio habitual y descuento real, sin acusar a ninguna cadena.
 - La cobertura es parcial: 379 presentaciones de productos, no todo el catálogo de un supermercado.
 - La licencia obliga a citar proveedor, licencia y conjunto de datos, y a mencionar las modificaciones.

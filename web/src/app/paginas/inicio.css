@@ -116,11 +116,29 @@ h1 {
 }
 
 .resultados a {
+  display: grid;
+  gap: 0.25rem;
   padding: 0.6rem 0.7rem;
   border-radius: 6px;
   font-weight: 550;
   line-height: 1.25;
   text-decoration: none;
+}
+
+.resultados small,
+.fechas {
+  color: var(--tinta-suave);
+  font-size: 0.875rem;
+}
+
+.fechas {
+  display: grid;
+  gap: 0.3rem;
+  max-width: 29rem;
+}
+
+.fechas strong {
+  color: var(--tinta);
 }
 
 .resultados a:hover,

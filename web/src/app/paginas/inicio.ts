@@ -35,13 +35,14 @@ const PORTADA = new Map([
     <div class="escenario">
       <section class="portada__texto" (appPaso)="paso.set(0)">
         <h1>
-          <span class="palabra"><span style="--i: 0">¿Dónde</span></span>&ngsp;
-          <span class="palabra"><span style="--i: 1">sale</span></span>&ngsp;
-          <span class="palabra"><span style="--i: 2">más</span></span>&ngsp;
+          <span class="palabra"><span style="--i: 0">¿Dónde</span></span
+          >&ngsp; <span class="palabra"><span style="--i: 1">sale</span></span
+          >&ngsp; <span class="palabra"><span style="--i: 2">más</span></span
+          >&ngsp;
           <span class="palabra"><span style="--i: 3">barato?</span></span>
         </h1>
         <p class="bajada">
-          Cada columna es un supermercado de Uruguay. Cuanto más alta, más caro vende el producto.
+          Buscá una marca o producto, compará precios y armá tu lista de compras.
         </p>
 
         <form class="buscador" role="search" (submit)="$event.preventDefault()">
@@ -62,7 +63,22 @@ const PORTADA = new Map([
               } @else if (busqueda.hasValue()) {
                 <p class="oculto-visual" role="status">{{ busqueda.value().total }} resultados</p>
                 @for (producto of busqueda.value().resultados; track producto.id) {
-                  <a [routerLink]="['/producto', producto.id]">{{ producto.nombre }}</a>
+                  <a [routerLink]="['/producto', producto.id]">
+                    <span>{{ producto.nombre }}</span>
+                    @if (
+                      resumenOnline.hasValue() && resumenOnline.value().precios.get(producto.id);
+                      as monto
+                    ) {
+                      <small>Online desde {{ formatoPrecio(monto) }}</small>
+                    } @else if (
+                      referencias.hasValue() && referencias.value()?.productos?.[producto.id];
+                      as referencia
+                    ) {
+                      <small
+                        >Mediana nacional del SIPC {{ formatoPrecio(referencia.mediana) }}</small
+                      >
+                    }
+                  </a>
                 } @empty {
                   <p>No encontramos "{{ consulta() }}". Probá con una palabra más general.</p>
                 }
@@ -72,6 +88,33 @@ const PORTADA = new Map([
             </div>
           }
         </form>
+
+        <div class="fechas" aria-live="polite">
+          @if (resumenOnline.hasValue()) {
+            @if (resumenOnline.value().ultimo; as ultimo) {
+              <p>
+                <strong>Precios online recientes</strong> en
+                {{ resumenOnline.value().precios.size }} productos de
+                {{ resumenOnline.value().tiendas }}
+                {{ resumenOnline.value().tiendas === 1 ? 'tienda' : 'tiendas' }}. Última consulta el
+                {{ formatoFecha(ultimo) }}.
+              </p>
+            } @else {
+              <p>No hay precios online consultados en los últimos 7 días.</p>
+            }
+          }
+          @if (referencias.hasValue() && referencias.value(); as reciente) {
+            <p>
+              Referencia nacional del SIPC actualizada el {{ formatoFecha(reciente.actualizado) }}.
+            </p>
+          }
+          @if (salud.hasValue()) {
+            <p>
+              Mapa con precios históricos del SIPC hasta el
+              {{ formatoFecha(salud.value().datos_hasta) }}.
+            </p>
+          }
+        </div>
 
         @if (destacados.hasValue()) {
           <div class="chips" role="group" aria-label="Ver en el mapa">
@@ -100,8 +143,10 @@ const PORTADA = new Map([
       @if (datosMapa(); as datos) {
         <div class="relato">
           <article (appPaso)="paso.set(1)">
-            <h2>{{ conPrecio() }} locales, un solo producto</h2>
-            <p><strong>{{ datos.producto.nombre }}</strong></p>
+            <h2>{{ conPrecio() }} locales con precios históricos</h2>
+            <p>
+              <strong>{{ datos.producto.nombre }}</strong>
+            </p>
             <p>La altura va del percentil 5 al 95, así un precio raro no tapa al resto.</p>
           </article>
           <article (appPaso)="paso.set(2)">
@@ -126,7 +171,9 @@ const PORTADA = new Map([
         <div class="impresora" appRevela>
           @for (clave of [datos.producto.id]; track clave) {
             <div class="ticket ticket--impreso">
-              <p class="ticket__cabeza">Canasta UY<br />Los 5 locales más baratos</p>
+              <p class="ticket__cabeza">
+                Precios históricos del SIPC<br />Los 5 locales más baratos
+              </p>
               <h2 id="titulo-baratos">{{ datos.producto.nombre }}</h2>
               <ol class="baratos">
                 @for (local of baratos(); track local.id) {
@@ -138,11 +185,12 @@ const PORTADA = new Map([
                     <b>{{ formatoPrecio(local.precio!) }}</b>
                   </li>
                 } @empty {
-                  <li>No hay precios recientes de este producto.</li>
+                  <li>No hay registros para este producto en el período.</li>
                 }
               </ol>
               <p class="ticket__pie">
-                Precio habitual sin ofertas desde el {{ formatoFecha(datos.desde) }}.
+                Precio habitual sin ofertas del {{ formatoFecha(datos.desde) }} al
+                {{ formatoFecha(datos.datos_hasta) }}.
               </p>
             </div>
           }
@@ -179,8 +227,8 @@ const PORTADA = new Map([
             </div>
           </dl>
           <p appRevela>
-            Los publica Defensa del Consumidor y llegan con retraso: los últimos son del
-            {{ formatoFecha(salud.value().datos_hasta) }}, así que no son los precios de hoy.
+            El archivo histórico de Defensa del Consumidor incluye registros hasta el
+            {{ formatoFecha(salud.value().datos_hasta) }}.
           </p>
         </div>
       </section>
@@ -206,17 +254,31 @@ export class Inicio {
 
   private readonly datos = inject(DatosService);
   protected readonly salud = resource({ loader: () => this.datos.salud() });
+  protected readonly resumenOnline = resource({ loader: () => this.datos.resumenOnline() });
+  protected readonly referencias = resource({ loader: () => this.datos.referenciasRecientes() });
+  private readonly productosRecientes = computed(() => {
+    const online = this.resumenOnline.hasValue() ? this.resumenOnline.value().precios.keys() : [];
+    const sipc = this.referencias.hasValue() ? this.referencias.value()?.productos : null;
+    return new Set([...online, ...Object.keys(sipc ?? {}).map(Number)]);
+  });
   protected readonly destacados = resource({
     loader: () => this.datos.destacados([...PORTADA.keys()]),
   });
   protected readonly busqueda = resource({
-    params: () => this.consulta() || undefined,
-    loader: ({ params }) => this.datos.buscar(params, 8),
+    params: () =>
+      this.consulta()
+        ? {
+            texto: this.consulta(),
+            recientes: this.productosRecientes(),
+          }
+        : undefined,
+    loader: ({ params }) => this.datos.buscar(params.texto, 8, params.recientes),
   });
 
   protected readonly idMapa = computed(
     () =>
-      this.elegido() ?? (this.destacados.hasValue() ? (this.destacados.value()[0]?.id ?? null) : null),
+      this.elegido() ??
+      (this.destacados.hasValue() ? (this.destacados.value()[0]?.id ?? null) : null),
   );
   protected readonly mapa = resource({
     params: () => this.idMapa() ?? undefined,

@@ -1,20 +1,33 @@
 # Canasta UY
 
-Observatorio de precios de Uruguay, hecho con los datos abiertos del
+Comparador de precios de Uruguay. Buscá un producto, mirá los precios recientes en tiendas online y compará cuánto cuesta tu lista con las cantidades que necesitás. El mapa, la comparación por zona y la evolución de cada producto usan los datos abiertos del
 [Sistema de Información de Precios al Consumidor](https://catalogodatos.gub.uy/dataset/defensa-del-consumidor-sistema-de-informacion-de-precios-al-consumidor-2026)
-(SIPC). Abre con un mapa 3D de Uruguay donde cada columna es un supermercado real, y permite comparar cadenas, ver cómo evoluciona cada producto y armar una canasta.
+(SIPC).
 
 **[Ver la web](https://nahuelbenitezs.github.io/canasta-uy/)**
 
-> **Estado:** fase 3 de 5, publicada. Medir si una oferta es real llega en la fase 4.
+## De dónde salen los precios
+
+- **Tiendas online.** GitHub Actions consulta diariamente los sitios públicos de Disco, Devoto y Géant para los productos que identifica por marca y presentación. Cada precio conserva su fecha de consulta. La búsqueda y la canasta usan precios de hasta siete días de antigüedad. Disponibilidad, descuentos y envío dependen de la tienda y la zona de entrega.
+- **Referencia nacional reciente.** La [API pública de Cambio Uruguay](https://api.cambio-uruguay.com/api-docs) resume los precios que recoge el SIPC. La ficha muestra la mediana, el rango central y la cantidad de locales incluidos en el resumen, con su fecha. Las fechas de declaración de cada comercio pueden ser anteriores a la del resumen.
+- **Histórico por local.** El archivo descargable de Defensa del Consumidor se publica por tandas. La web muestra el último día cubierto y usa esas declaraciones para calcular precios habituales y mostrar su evolución. Consultá el [comparador oficial del SIPC](https://www.precios.uy/sipc2Web/) para ver las declaraciones más recientes por sucursal.
 
 ## Ver la web localmente
 
-Con los datos ya cargados:
+Para probar con una copia de los últimos datos compilados, descargá la rama `gh-pages` y extraé su carpeta `datos` en `web/public`:
+
+```powershell
+git fetch origin gh-pages
+git archive --output=canasta-datos.tar FETCH_HEAD datos
+tar -xf canasta-datos.tar -C web/public
+Remove-Item -LiteralPath canasta-datos.tar
+```
+
+Después, arrancá la web:
 
 ```powershell
 cd web
-npm install
+npm ci
 npm start
 ```
 
@@ -24,7 +37,9 @@ Está hecha con Angular, Three.js para el mapa y Motion para las animaciones. La
 
 ## Cómo se publica
 
-La web es estática y vive en GitHub Pages, sin servidor. `canasta-etl` exporta un catálogo y un archivo de precios por producto a `web/public/datos`, y el navegador calcula cada consulta con [`consultas.ts`](web/src/app/consultas.ts). La API hace los mismos cálculos con DuckDB: sirve para consultar los datos por separado, y la web no la necesita.
+La web es estática y vive en GitHub Pages. `canasta-etl` exporta un catálogo y un archivo de precios históricos por producto a `web/public/datos`. Los otros procesos generan `tiendas.json` y `recientes.json` en la misma carpeta. El navegador calcula las comparaciones sin un servidor propio. La API FastAPI consulta el histórico en DuckDB por separado.
+
+El flujo [Actualizar datos](.github/workflows/datos.yml) revisa las fuentes y vuelve a publicar cada día. También se puede ejecutar a mano desde **Actions → Actualizar datos → Run workflow**.
 
 Para publicar, desde Git Bash y con los datos ya cargados:
 
@@ -40,6 +55,8 @@ Requiere Python 3.11 o superior. Los ejemplos son para PowerShell.
 python -m venv .venv
 .\.venv\Scripts\python -m pip install -e ".[dev]"
 .\.venv\Scripts\canasta-etl --anio 2026
+.\.venv\Scripts\python -m canasta_etl.tiendas web/public/datos
+.\.venv\Scripts\python -m canasta_etl.recientes web/public/datos
 .\.venv\Scripts\python -m pytest
 ```
 
@@ -100,8 +117,7 @@ Datos del 1 de enero al 30 de setiembre:
 
 ## Limitaciones conocidas
 
-- **Los datos no son del día:** se publican con retraso, así que sirven para ver tendencias y no para saber el precio de hoy.
-- **La cobertura es parcial:** el catálogo tiene 379 presentaciones de productos, no todo lo que vende un supermercado.
+- **La cobertura es parcial.** El catálogo oficial incluye 379 presentaciones, y las tiendas online cubren una parte de ellas. Un total parcial suma únicamente los productos con precios recientes, e indica cuáles faltan.
 - **Los precios los declaran los comercios:** por ejemplo, unas curitas de mediana $56 aparecen a $2.539,56. Se conservan y la validación avisa; las fases siguientes tienen que usar medidas robustas, como la mediana.
 - **Solo se probó con 2026:** los archivos de otros años pueden tener diferencias, y la base de la API usa únicamente el año más reciente que se procese.
 

@@ -42,6 +42,86 @@ h1 {
   border-bottom: 1px solid var(--linea);
 }
 
+.item-acciones,
+.acciones-lista,
+.cantidad {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.item-acciones {
+  flex: none;
+}
+
+.cantidad {
+  flex-wrap: nowrap;
+  gap: 0.15rem;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+}
+
+.cantidad button {
+  width: 2.6rem;
+  min-height: 2.6rem;
+  border: 0;
+  border-radius: var(--radio);
+  background: transparent;
+  color: var(--tinta);
+  font: inherit;
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+
+.cantidad button:disabled {
+  color: var(--tinta-suave);
+  opacity: 0.45;
+  cursor: default;
+}
+
+.cantidad button:enabled:hover {
+  background: var(--papel-hondo);
+}
+
+.cantidad output {
+  width: 1.75rem;
+  text-align: center;
+  font-weight: 650;
+}
+
+.comparaciones {
+  display: grid;
+  gap: 1.75rem;
+}
+
+.historico {
+  padding: 1rem;
+  border: 1px solid var(--linea);
+  border-radius: var(--radio);
+}
+
+.historico > .filtros {
+  margin-top: 1rem;
+}
+
+.totales-online {
+  margin-top: 0;
+}
+
+.fecha-online {
+  grid-column: 1 / -1;
+}
+
+.parciales {
+  margin-top: 0.75rem;
+}
+
+.parciales-lista {
+  padding-left: 0;
+  margin-top: 0.5rem;
+}
+
 .quitar {
   flex: none;
   min-height: 2.25rem;
@@ -116,5 +196,12 @@ details summary {
 @media (max-width: 860px) {
   .disposicion {
     grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 420px) {
+  .productos li {
+    flex-wrap: wrap;
+    gap: 0.45rem;
   }
 }
